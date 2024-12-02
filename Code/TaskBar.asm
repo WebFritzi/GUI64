@@ -136,8 +136,7 @@ PaintTaskbar    ; Paint taskbar without buttons
                 bpl -
                 ; Clock
                 jsr DrawClockButton
-                jsr DisplayClock
-                rts
+                jmp DisplayClock
 
 TB_offset       !byte 0
 ; Expects TaskBtnPos, TaskBtnWidth, TaskBtnPressed and FDFE filled
