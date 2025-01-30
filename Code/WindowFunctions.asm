@@ -1,19 +1,24 @@
-; Based on current window type, writes device no
-; into DeviceNumber
-GetDeviceNumber lda #8
-                sta DeviceNumber
-                lda WindowType
-                cmp #WT_DRIVE_9
-                bne +
-                lda #9
-                sta DeviceNumber
+; Gets current device index (0 or 1), based on current window type
+GetCurDeviceInd lda #0
+                sta CurDeviceInd
+                ;
+                ldx WindowType; 1 or 2
+                dex
+                cpx #2
+                bcs +
+                stx CurDeviceInd
 +               rts
+
+; Gets current device index and device no
+GetCurDeviceNo  jsr GetCurDeviceInd
+                ldx CurDeviceInd
+                lda DeviceNumbers,x
+                sta CurDeviceNo
+                rts
 
 ; Assumes mouse already in title bar
 ; Returns 0 if not; 1 if in close; 2 if in maximize; 3 if in minimize
-IsInMinMaxClose lda #0
-                sta res
-                lda WindowPosX
+IsInMinMaxClose lda WindowPosX
                 clc
                 adc WindowWidth
                 tax
@@ -22,7 +27,6 @@ IsInMinMaxClose lda #0
                 cpx MouseInfo
                 bne +
                 lda #1
-                sta res
                 rts
 +               ; Check second position
                 dex
@@ -33,13 +37,11 @@ IsInMinMaxClose lda #0
                 beq +
                 ; Maximize btn pressed
                 lda #2
-                sta res
                 rts
 +               lda WindowBits
                 and #BIT_WND_CANMINIMIZE
                 beq +++
-                lda #3
-                sta res
+-               lda #3
                 rts
 ++              ; Check third position
                 dex
@@ -51,9 +53,9 @@ IsInMinMaxClose lda #0
                 lda WindowBits
                 and #BIT_WND_CANMINIMIZE
                 beq +++
-                lda #3
-                sta res
-+++             rts
+                jmp -
++++             lda #0
+                rts
 
 ; Writes cur wnd addr in buf to WndAddressInBuf
 GetWndAddrInBuf ldx WindowPosY
@@ -69,6 +71,8 @@ GetWndAddrInBuf ldx WindowPosY
                 inc WndAddressInBuf+1
 +               rts
 
+; Paints desktop and all windows to buffer
+; and then to screen
 RepaintAll      ; Set buffer bounds
                 lda #40
                 sta BufWidth
@@ -120,8 +124,7 @@ next_wnd        dec window_counter
                 sta $fc
                 jsr BufToScreen
                 ; Redraw current window
-                jsr PaintCurWindow
-                rts
+                jmp PaintCurWindow
 
 ; Finds window which is clicked on (NOT! curr wnd)
 ; Returns wnd handle in res. Has wnd addr in $FB
@@ -145,7 +148,6 @@ WindowFromPos   ; Only if 2 or more alloced
                 lda #>WND_HEAP
                 sta $fc
                 jsr IsInWnd
-                lda res
                 bne +
                 inx
                 cpx AllocedWindows
@@ -161,9 +163,7 @@ WindowFromPos   ; Only if 2 or more alloced
 
 ; Checks if mouse is in window pointed to by $FBFC in wnd heap
 ; Expects MouseInfo filled
-IsInWnd         lda #0
-                sta res
-                ldy #WNDSTRUCT_POSX
+IsInWnd         ldy #WNDSTRUCT_POSX
                 lda MouseInfo
                 cmp ($fb),y
                 bcc +
@@ -183,71 +183,50 @@ IsInWnd         lda #0
                 cmp ($fb),y
                 bcs +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 ; Expects mouse in cur wnd
-IsInTitleBar    lda #0
-                sta res
-                lda WindowPosY
+IsInTitleBar    lda WindowPosY
                 cmp MouseInfo+1
                 bne +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
-IsInCurWnd      lda #0
-                sta res
-                ; Check if there is any window at all
+IsInCurWnd      ; Check if there is any window at all
                 lda VisibleWindows
                 beq +
                 ; Here we go
+
                 lda MouseInfo
-                cmp WindowPosX
-                bcc +
-                sec
-                sbc WindowPosX
-                cmp WindowWidth
-                bcs +
-                ;
+                sta Point
                 lda MouseInfo+1
-                cmp WindowPosY
-                bcc +
-                sec
-                sbc WindowPosY
-                cmp WindowHeight
-                bcs +
+                sta Point+1
+                jmp IsInWndRect
+                
+                ;lda MouseInfo
+                ;cmp WindowPosX
+                ;bcc +
+                ;sec
+                ;sbc WindowPosX
+                ;cmp WindowWidth
+                ;bcs +
+                ;;
+                ;lda MouseInfo+1
+                ;cmp WindowPosY
+                ;bcc +
+                ;sec
+                ;sbc WindowPosY
+                ;cmp WindowHeight
+                ;bcs +
                 ;
                 lda #1
-                sta res
-+               rts
-
-;; Writes scrmem and clrmem pos of control in $fb to $fdfe/$0203
-;GetCtrlScrClr   ; Find scrmem pos
-;                ldx WindowPosY
-;                inx
-;                lda WindowHasMenu
-;                beq +
-;                inx
-;+               txa
-;                ldy #CTRLSTRUCT_POSY
-;                clc
-;                adc ($fb),y
-;                tax
-;                dey
-;                lda WindowPosX
-;                clc
-;                adc ($fb),y
-;                tay
-;                jsr PosToScrMem
-;                ; Find clrmem pos
-;                lda $fd
-;                sta $02
-;                lda $fe
-;                clc
-;                adc #>CLRMEM_MINUS_SCRMEM;(>CLRMEM - >SCRMEM)
-;                sta $03
-;                rts
+                rts
++               lda #0
+                rts
 
 ; Writes scr/clr buf positions of cur control to $fdfe/$0203
 ; Expects ControlPosX, ControlPosY filled
@@ -279,11 +258,8 @@ GetCtrlBufPos   lda WndAddressInBuf
                 bpl -
 +               lda ControlPosX
                 jsr AddToFD
-                ;+AddByteToFD ControlPosX
                 lda ControlPosX
-                jsr AddTo02
-                ;+AddByteTo02 ControlPosX
-                rts
+                jmp AddTo02
 
 ; Fills MousePosInWndX/Y
 ; It's the mouse pos relative to the area in which controls can be placed

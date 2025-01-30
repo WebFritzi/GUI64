@@ -31,15 +31,8 @@ L_0             lda #CL_BLACK
                 sta BKGCOLOR
                 jsr MultiColorOff
                 jsr DisplayClock
-                ; Set char set
-                lda $d018
-                and #%11110001
-                ora #MAINCHARSHI
+                lda desktop_d018
                 sta $d018
-                and #%11110001
-                ora #TASKCHARSHI
-                sta byte
-                ;
                 ; Drive icons
                 jsr DrawDriveSprites
                 ; Process joystick and mouse input
@@ -49,7 +42,8 @@ L_0             lda #CL_BLACK
                 sta $d012
                 jmp return_irq
 
-byte            !byte 0
+taskbar_d018    !byte 0
+desktop_d018    !byte 0
 dummy_irq       !byte 0
 
 Raster226       pha
@@ -62,7 +56,7 @@ Raster226       pha
                 ora #%00010000
                 tax
                 ; Prepare char set
-                lda byte
+                lda taskbar_d018
                 ; Write into registers
                 nop
                 nop
@@ -97,7 +91,23 @@ Raster226       pha
                 jsr Keyboard
                 jmp return_irq
 
-InstallIRQ      sei
+Disable_CIA_IRQ sei
+                lda #%01111111; Bit 7 sets the value, Bit 0...4 selects the bits to be set
+                sta $dc0d
+                sta $dd0d
+                ; Acknowledge any pending CIA irq
+                lda $dc0d
+                lda $dd0d
+                lda #$ff
+                sta $d019
+                cli
+                rts
+
+InstallIRQ      jsr SetTaskbarColors
+                jsr PaintTaskbar
+                lda #1
+                sta MayShowClock
+                sei
                 lda #53
                 sta $01
                 lda #<RasterIRQ
@@ -114,15 +124,6 @@ InstallIRQ      sei
                 lda $d01a
                 ora #%00000001
                 sta $d01a
-                ; Disable CIA IRQ: Bit 7 sets the value, Bit 0...4 selects the bits to be set
-                lda #%01111111
-                sta $dc0d
-                sta $dd0d
-                ; Acknowledge any pending CIA irq
-                lda $dc0d
-                lda $dd0d
-                lda #$ff
-                sta $d019
                 cli
                 rts
 
@@ -137,9 +138,5 @@ DeinstallIRQ    sei
                 lda $d01a
                 and #%11111110
                 sta $d01a
-                ; Enable CIA IRQ
-                lda #%11111111
-                sta $dc0d
-                lda $dc0d
                 cli
                 rts

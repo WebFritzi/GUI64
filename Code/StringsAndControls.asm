@@ -1,13 +1,14 @@
 ;------------------------------
 ; Custom strings as PETSCII
 ; Lower/upper case
-Str_Settings    !pet "Settings",0
+Str_Title_Settings    
+                !pet "Settings",0
+Str_Title_Viewer!pet "File View",0
 Str_Settings_RBG!pet "Solid",0,"Dotted",0
-Str_DriveMenubar!pet "Disk",0,"File",0
 Str_No          !pet " No"
 Str_Yes         !pet "Yes"
 ; Dialog titles
-Str_Dlg_Info    !pet "Information",0
+Str_Dlg_Info    !pet "Info",0
 Str_Dlg_Delete  !pet "Delete",0
 Str_Dlg_Reset   !pet "Reset",0
 Str_Dlg_Clock   !pet "Clock",0
@@ -15,41 +16,49 @@ Str_Dlg_Ren_File!pet "Rename File",0
 Str_Dlg_Ren_Disk!pet "Rename Disk",0
 Str_Dlg_For_Disk!pet "Format Disk",0
 Str_Dlg_DiskInfo!pet "Disk Info",0
-Str_Dlg_CopyFile!pet "Copy File",0
+Str_Dlg_CopyFile!pet "Copying File",0
 Str_Dlg_Error   !pet "Disk Error",0
+Str_Dlg_DevNo   !pet "Dev No",0
 ; Dialog labels
 Str_Err_WritProt!pet "DISK WRITE PROTECTEd"; err code 30
 Str_Err_NA      !pet "NOT AVAILABLe"; err code 31
-Str_Mess_Error  !pet "Error code: xx\\Error message:\illegal device number",0
+;Str_Mess_Error  !pet "Error code: xx\\Error message:\illegal device number",0
+Str_Mess_Error  !pet "illegal device number",0
 Str_Mess_NoSpace!pet "There is not enough space\on this disk.",0
 Str_Mess_NoSameDisk !pet "Files cannot be copied\from a disk to itself.",0
 Str_Mess_MaxWnd !pet "The number of minimizable\windows is limited to 7.",0
+Str_Mess_SameDev!pet "Drives A and B cannot have\the same device number.",0
 Str_Mess_Sure   !pet "Are you sure?",0
 Str_Mess_OldFile!pet "Old filename:",0
 Str_Mess_NewFile!pet "New filename:",0
 Str_Mess_OldDisk!pet "Old diskname:",0
 Str_Mess_NewDisk!pet "New diskname:",0
+Str_Mess_GUI64  !pet 221,222,223," GUI64 v1.1\",224,225,226," WebFritzi Inc.\    ",96," 2025",0
 Str_Dlg_For_RBG !pet "Fast format",0,"Full format",0
+; Other strings
 Str_Loading     !pet "Loading...",0
+Str_DiskAccess  !pet "Disk access..."
 ;------------------------------
 ; Custom strings as PETSCII
 ; Only upper case
-Str_Title_Drive8!pet "8-no disk         ",0
-Str_Title_Drive9!pet "9-no disk         ",0
+Str_Title_DriveA!pet "a-no disk         ",0
+Str_Title_DriveB!pet "b-no disk         ",0
 Str_LoadingUC   !pet "loading...      ",0
+Str_Disk_Error  !pet "disk error      "
+Str_DirUp       !pet "..",1,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,"dir",1,32,32,32,32,32,"0",0,0,0,0
 ;==============================
 ; Window and controls data
 ;------------------------------
 ; Drive window
-Wnd_Drive8      !byte WT_DRIVE_8, %00110110, 6, 1, 29, 7, <Str_Title_Drive8, >Str_Title_Drive8, <DriveWndProc, >DriveWndProc
-Wnd_Drive9      !byte WT_DRIVE_9, %00110110, 9, 4, 29, 7, <Str_Title_Drive9, >Str_Title_Drive9, <DriveWndProc, >DriveWndProc
+Wnd_DriveA      !byte WT_DRIVE_A, %00110110, 6, 1, 29, 7, <Str_Title_DriveA, >Str_Title_DriveA, <DriveWndProc, >DriveWndProc
+Wnd_DriveB      !byte WT_DRIVE_B, %00110110, 9, 4, 29, 7, <Str_Title_DriveB, >Str_Title_DriveB, <DriveWndProc, >DriveWndProc
 Ctrl_Drv_Menubar!byte CT_MENUBAR, 0, 0, 0, 0
                 !pet 0
 Ctrl_Drv_FLB    !byte CT_FILELISTSCROLLBOX, 0, 0, 27, 9
                 !pet 0
 ;------------------------------
 ; Settings window
-Wnd_Settings    !byte WT_SETTINGS, %00101100, 9, 1, 21, 20, <Str_Settings, >Str_Settings, <SettingsWndProc, >SettingsWndProc
+Wnd_Settings    !byte WT_SETTINGS, %00101100, 9, 0, 21, 21, <Str_Title_Settings, >Str_Title_Settings, <SettingsWndProc, >SettingsWndProc
                 !byte CT_COLORPICKER, 17, 3, 2, 1
                 !pet 0
                 !byte CT_COLORPICKER, 17, 4, 2, 1
@@ -60,26 +69,29 @@ Wnd_Settings    !byte WT_SETTINGS, %00101100, 9, 1, 21, 20, <Str_Settings, >Str_
                 !pet 0
                 !byte CT_COLORPICKER, 17, 7, 2, 1
                 !pet 0
-                !byte CT_RADIOBUTTONGROUP, 2, 12, 15, 2
+                !byte CT_COLORPICKER, 17, 8, 2, 1
                 !pet 0
-                !byte CT_FRAME, 1, 1, 19, 8
+                !byte CT_RADIOBUTTONGROUP, 2, 13, 15, 2
+                !pet 0
+                !byte CT_FRAME, 1, 1, 19, 9
                 !pet "Colors",0
-                !byte CT_LABEL, 2, 3, 12, 1
-                !pet "Title (act.)",0
-                !byte CT_LABEL, 2, 4, 14, 1
-                !pet "Title (inact.)",0
-                !byte CT_LABEL, 2, 5, 14, 1
-                !pet "Selection",0
-                !byte CT_LABEL, 2, 6, 6, 1
-                !pet "Window",0
-                !byte CT_LABEL, 2, 7, 7, 1
-                !pet "Desktop",0
-                !byte CT_FRAME, 1, 10, 19, 5
+                !byte CT_LABEL_ML, 2, 3, 14, 1
+                !pet "Title (act.)\Title (inact.)\Selection\Menu Selection\Window\Desktop",0
+                !byte CT_FRAME, 1, 11, 19, 5
                 !pet "Desktop Pattern",0
-                !byte CT_BUTTON, 8, 15, 7, 3
+                !byte CT_BUTTON, 6, 16, 7, 3
                 !pet "Apply",0
-                !byte CT_BUTTON, 16, 15, 4, 3
-                !pet "OK",0
+                !byte CT_BUTTON, 14, 16, 6, 3
+                !pet " OK ",0
+                ; Final zero byte
+                !byte 0
+;------------------------------
+; File viewer window
+Wnd_FileViewer  !byte WT_FILEVIEW, %00110011, 9, 3, 21, 14, <Str_Title_Viewer, >Str_Title_Viewer, <ViewerWndProc, >ViewerWndProc
+                !byte CT_MENUBAR, 0, 0, 0, 0
+                !pet 0
+                !byte CT_TEXTVIEWBOX, 0, 0, 21, 12
+                !pet 0
                 ; Final zero byte
                 !byte 0
 ;==============================
@@ -88,10 +100,10 @@ Wnd_Settings    !byte WT_SETTINGS, %00101100, 9, 1, 21, 20, <Str_Settings, >Str_
 ;------------------------------
 ; Show Message
 Wnd_Dlg_ShowMess!byte WT_DLG_INFO, %00001100, 1, 1, 1, 1, <Str_Dlg_Info, >Str_Dlg_Info, <MessageDlgProc, >MessageDlgProc
-                !byte CT_LABEL_ML, 1, 1, 1, 1
-                !pet 0
-Ctrl_SM_OkBtn   !byte CT_BUTTON, 1, 1, 4, 3
-                !pet "OK",0
+                ;!byte CT_LABEL_ML, 1, 1, 1, 1
+                ;!pet 0
+Ctrl_SM_OkBtn   !byte CT_BUTTON, 1, 1, 6, 3
+                !pet " OK ",0
 ;------------------------------
 ; YesNo Dialog
 Wnd_Dlg_YesNo   !byte WT_DLG_YESNO, %00001100, 1, 1, 1, 1, 0, 0, <YesNoDlgProc, >YesNoDlgProc
@@ -105,12 +117,8 @@ Ctrl_YN_YesBtn  !byte CT_BUTTON, 1, 1, 5, 3
 ; Disk Info Dialog
 Wnd_Dlg_DiskInfo!byte WT_DLG_DISKINFO, %00001100, 10, 3, 20, 15, <Str_Dlg_DiskInfo, >Str_Dlg_DiskInfo, <DiskInfoDlgProc, >DiskInfoDlgProc
                 !byte CT_PROGRESSBAR, 1, 1, 18, 1, 0
-                !byte CT_LABEL, 1, 8, 13, 1
-                !pet "Drive Type",0
-                !byte CT_LABEL, 1, 9, 13, 1
-                !pet "Write protect",0
-                !byte CT_LABEL, 1, 7, 13, 1
-                !pet "Files",0
+                !byte CT_LABEL_ML, 1, 7, 13, 1
+                !pet "Files\Drive Type\Write protect",0
                 !byte CT_LABEL, 1, 3, 13, 1
                 !pet "Size (blocks)",0
                 !byte CT_COLBOXLABEL, 1, 4, 11, 1
@@ -172,7 +180,18 @@ Wnd_Dlg_CopyFile!byte WT_DLG_COPYFILE, %00001100, 11, 4, 18, 9, <Str_Dlg_CopyFil
                 !byte CT_LABEL, 1, 3, 16, 1
                 !pet  0
 Ctrl_CF_Label2  !byte CT_LABEL, 1, 5, 13, 1
-                !pet  "From #8 to #9",0; 11 and 17
+                !pet  "From A to B",0; 10 and 15
+                ; Final zero byte
+                !byte 0
+;------------------------------
+; Device No Dialog
+Wnd_Dlg_DevNo   !byte WT_DLG_DEVNO, %00001100, 11, 5, 10, 8, <Str_Dlg_DevNo, >Str_Dlg_DevNo, <DevNoDlgProc, >DevNoDlgProc
+                !byte CT_LABEL, 2, 1, 2, 1
+Ctrl_DN_DevInd  !pet  "A:",0
+                !byte CT_UPDOWN, 4, 0, 5, 3
+                !pet 0
+                !byte CT_BUTTON, 2, 3, 6, 3
+                !pet " OK ",0
                 ; Final zero byte
                 !byte 0
 ;------------------------------
@@ -187,11 +206,19 @@ Wnd_Dlg_Clock   !byte WT_DLG_CLOCK, %00001100, 31,13,9,9, <Str_Dlg_Clock, >Str_D
                 ; Final zero byte
                 !byte 0
 
+;===================================================
 ; Menus
 ; Format: ID, max_str_len, item_count, StringList
 Menu_Start      !pet ID_MENU_START,8,3,"Settings",0," ",0,"Reset   ",0
 Menu_ColorPicker!pet ID_MENU_COLORPICKER,2,16,"0",0,"1",0,"2",0,"3",0,"4",0,"5",0,"6",0,"7",0,"8",0,"9",0,"A",0,"B",0,"C",0,"D",0,"E",0,"F",0
-Menu_Disk       !pet ID_MENU_DISK,7,5,"Refresh",0,"Info",0,"Format",0,"Rename",0,"Close",0
-Menu_File       !pet ID_MENU_FILE,6,7,"Cut",0,"Copy",0,"Paste",0,"Delete",0,"Rename",0,"Run",0, "Boot",0
+;
+Str_DriveMenubar!pet "Disk",0,"File",0,"Opts",0
+Menu_Disk       !pet ID_MENU_DISK,9,6,"Refresh",0,"Device No",0,"Info",0,"Format",0,"Rename",0,"Close",0
+Menu_File       !pet ID_MENU_FILE,6,8,"Cut",0,"Copy",0,"Paste",0,"Delete",0,"Rename",0,"View",0,"Run",0, "Boot",0
+Menu_Options    !pet ID_MENU_OPTS,11,2," Show Sizes",0," GUI64 Info",0
+;
+Str_ViewMenubar !pet "View As",0
+Menu_View_File  !pet ID_MENU_FILE,7,4,"Text UC",0,"Text LC",0,"Hex",0,"Close",0
 ; Menu lists
-DriveMenus      !word Menu_Disk, Menu_File
+DriveMenu       !word Menu_Disk, Menu_File, Menu_Options
+ViewerMenu      !word Menu_View_File

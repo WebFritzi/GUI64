@@ -2,6 +2,7 @@
 !source "Constants.asm"
 !source "Macros.asm"
 
+!zone AutoRun
 ;*=$0300
 ;; Standard C64 vectors
 ;!byte $8b, $e3, $83, $a4, $7c, $a5, $1a, $a7, $e4, $a7, $86, $ae, $00, $00, $00, $00, $4c, $48, $b2, $00
@@ -23,11 +24,11 @@
 two_bytes       !byte 0,0 ; First 2 bytes of file
 
 BOOT            ; Clear screen
-                ;(that's why code is here and not in default screen RAM)
+                ; (that's why code is here and not in default screen RAM)
                 jsr CLRSCR
                 jmp (two_bytes)
 
-Run             ; Run BASIC program at $0801
+RUN             ; Run BASIC program at $0801
                 ; Clear screen (that's why code is here)
                 jsr CLRSCR
                 lda #0
@@ -36,25 +37,53 @@ Run             ; Run BASIC program at $0801
                 jsr $A659 ; Reset CLR, TXTPTR
                 jmp $A7AE ; Jump into interpreter loop
 
-autostart       sei
-                ; No kernal messages ("SEARCHING FOR ..." etc)
+autostart       ; No kernal messages ("SEARCHING FOR ..." etc)
                 lda #0
                 sta $9d
-                ; For CIA timer
-                jsr TODInit
                 ; Restore std kernal vectors
                 jsr RESTOR
-                cli
-                
+                ; Disable system interrupt
+                jsr Disable_CIA_IRQ
+                ; Initialize CIA timer
+                jsr TODInit
+                ; Bank out BASIC and Kernal
                 lda #53 ; RAM / IO / RAM
                 sta $01
-                
+
+                ; Copy chars and sprites to $E000
+                lda #<GraphicsData
+                sta $fb
+                lda #>GraphicsData
+                sta $fc
+                lda #<CHARBASE
+                sta $fd
+                lda #>CHARBASE
+                sta $fe
+                ;
+                ldx #17
+--              ldy #$00
+-               lda ($fb),y
+                sta ($fd),y
+                dey
+                bne -
+                inc $fc
+                inc $fe
+                dex
+                bne --
+
                 jsr SetGlobals
-                jsr SetBkgPattern
                 jsr RepaintAll
                 jsr SetTaskbarColors
                 jsr PaintTaskbar
+                jsr SetBkgPattern
                 jsr SetGraphicsEnvironment
+                
+                lda $d018
+                sta desktop_d018
+                and #%11110001
+                ora #TASKCHARSHI
+                sta taskbar_d018
+                
                 jsr InstallIRQ
 
 !zone MainLoop
@@ -78,9 +107,9 @@ MainLoop        lda exit_code
                 beq Exit
                 cmp #EC_DBLCLICK
                 beq BtnDblClick
-                cmp #EC_SCROLLDOWN
+                cmp #EC_SCROLLWHEELDOWN
                 beq ScrollDown
-                cmp #EC_SCROLLUP
+                cmp #EC_SCROLLWHEELUP
                 beq ScrollUp
                 cmp #EC_KEYPRESS
                 beq KeyPress
@@ -124,6 +153,7 @@ KeyPress        jsr OnKeyPress
 
 Exit            ; Number of chars in keyboard buffer
                 jsr DeinstallIRQ
+                jsr Enable_CIA_IRQ
                 jsr SetC64Defaults
                 ; Reset to BASIC
                 jmp ($a000);$fce2
@@ -137,18 +167,6 @@ BootFile        jsr PrepareLoad
                 jmp load_error
 +               ; No error
                 jsr SetC64Defaults
-                ; Only for disk version
-                ; Version 1
-                ;lda $a000
-                ;sec
-                ;sbc #1
-                ;tax
-                ;lda $a001
-                ;sbc #0
-                ;pha
-                ;txa
-                ;pha
-                ; Version 2
                 lda #0
                 sta $0800
                 sta $0801
@@ -178,8 +196,9 @@ load_error      ; Error
                 stx $2D   ; Zeiger auf Start der Variablen
                 sty $2E   ; (a.k.a. "Ende des Programms") setzen
                 jsr SetC64Defaults
-                jmp Run
+                jmp RUN
 
+!zone LoadRoutines
 load_appendix   !pet ",p,p"
 load_fn         !pet "0123456789abcdef",0,0,0,0,0
 error_code      !byte 0
@@ -190,7 +209,7 @@ LoadFile        lda load_length
                 ldy #>load_fn
                 jsr SETNAM
                 lda #1
-                ldx DeviceNumber
+                ldx CurDeviceNo
                 ldy #0
                 jsr SETLFS
                 lda #0
@@ -217,7 +236,9 @@ PrepareLoad     jsr GetFileName
                 ;
 +               jsr BlackTaskbar
                 jsr UninstallIRQ
-                jsr GetDeviceNumber
+                jsr Enable_CIA_IRQ
+                ;
+                jsr GetCurDeviceNo
                 lda #0
                 sta error_code
                 ; Copy Str_FileName to load_fn
@@ -248,7 +269,7 @@ ReadTwoBytes    lda load_length
                 ldy #>load_fn
                 jsr SETNAM
                 lda #$02      ; file number 2
-                ldx DeviceNumber
+                ldx CurDeviceNo
                 ldy #$02      ; secondary address 2
                 jsr SETLFS
                 jsr OPEN
@@ -259,7 +280,8 @@ ReadTwoBytes    lda load_length
                 jsr CLOSE
                 jsr CLRCHN
                 rts
-+               ldx #$02      ; file number 2
++               ; No error
+                ldx #$02      ; file number 2
                 jsr CHKIN     ; file 2 now used as input
                 ;
                 jsr CHRIN     ; get a byte from file
@@ -281,6 +303,11 @@ SetC64Defaults  lda #1
                 ;
                 lda #0
                 sta 198
+                rts
+
+Enable_CIA_IRQ  lda #%11111111
+                sta $dc0d
+                lda $dc0d
                 rts
 
 ; Get back to standard C64 graphics settings
@@ -316,7 +343,7 @@ StdGraphics     lda #0
 
 !zone MainBody
                 !source "Events.asm"
-                !source "MouseJoy.asm"
+                !source "KeyMouseJoy.asm"
                 !source "IRQ.asm"
                 !source "Graphics.asm"
                 !source "NoGUI.asm"
@@ -331,18 +358,18 @@ StdGraphics     lda #0
                 !source "MenuFunctions.asm"
                 !source "DriveWindow.asm"
                 !source "SettingsWindow.asm"
+                !source "ViewerWindow.asm"
                 !source "DialogFunctions.asm"
                 !source "DiskOperations.asm"
                 !source "Math.asm"
                 !source "Data.asm"
                 !source "StringsAndControls.asm"
 
+; ATTENTION: FREEMEM is at $5f00
+
 !zone Appendix
-*=CHARBASE
-Chars           !bin "chars26.bin"
-
-*=TASKCHARBASE
-TaskbarChars    !bin "TaskbarChars5.bin"
-
-*=SPRITEBASE
-                !source "Sprites.asm"
+; The following is copied to $e000 at GUI64 startup
+;*=GRAPHICSDATA
+GraphicsData    !bin "chars33.bin"
+                !bin "TaskbarChars6.bin"
+SpriteData      !source "Sprites.asm"

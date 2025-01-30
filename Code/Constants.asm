@@ -1,29 +1,34 @@
 ; Addresses
-VICBANK             = $4000
+VICBANK             = $c000
 CLRMEM              = $d800
 std_irq             = $ea31
 VIC                 = $d000
 SID                 = $d400
 BASIC_ERR_START     = $a19e
 ;
-FREEMEM             = CHARBASE - $0100
-CHARBASE            = $5800
-TASKCHARBASE        = $6000
-SPRITEBASE          = $6400
-SCRMEM              = $6c00
-CLRMEM_MINUS_SCRMEM = CLRMEM - SCRMEM
+;GRAPHICSDATA        = $5800
+PROG_END            = $6000
+FILEVIEWERBUF_START = $f800
+FILEVIEWERBUF_END   = $ffff
+FILEVIEWERBUF_BLOCKS= 8
+FREEMEM             = PROG_END - $0100
+SPRITEBASE          = $ec00
+CHARBASE            = $e000
+TASKCHARBASE        = $e800
+SCRMEM              = $f400
+SCRMEM_MINUS_CLRMEM = SCRMEM - CLRMEM
 ;
-WND_HEAP            = $7000; 16 wnd structs, must be $xx00 !!!
-CONTROL_HEAP        = $7100; 7 * 16 = 112 control structs
-SCR_BUF             = $7800
-TASKBAR_BUF         = $7b70
+WND_HEAP            = $a000; 16 wnd structs, must be $xx00 !!!
+CONTROL_HEAP        = $a100; 7 * 16 = 112 control structs
+SCR_BUF             = $a800
+TASKBAR_BUF         = $ab70
 CLR_BUF             = SCR_BUF + $0400
-STRING_LIST_DRIVE8  = $8000
-STRING_LIST_DRIVE9  = $9000
+STRING_LIST_DRIVEA  = $b000
+STRING_LIST_DRIVEB  = $c000
 ;
 ; For quickly changing the char set
 MAINCHARSHI = (>(CHARBASE - VICBANK))/4
-TASKCHARSHI = (>(CHARBASE + $0800 - VICBANK))/4
+TASKCHARSHI = (>(TASKCHARBASE - VICBANK))/4
 ; Application
 MAX_WND_NUMBER = 16
 MAXED = 255
@@ -35,18 +40,20 @@ CUR_RESIZENWSE = 1
 CUR_RESIZENS   = 2
 CUR_RESIZEWE   = 3
 CUR_CARRET     = 4
+;----------------------------------
 ; Window struct members
-WNDSTRUCT_HANDLE = 0
-WNDSTRUCT_TYPE = 1
-WNDSTRUCT_COLOR = 2
-WNDSTRUCT_BITS = 3
-WNDSTRUCT_POSX = 4
-WNDSTRUCT_POSY = 5
-WNDSTRUCT_WIDTH = 6
-WNDSTRUCT_HEIGHT = 7
-WNDSTRUCT_TITLESTRING = 8   ; ptr
+;
+WNDSTRUCT_HANDLE       = 0
+WNDSTRUCT_TYPE         = 1
+WNDSTRUCT_BTS_EX       = 2
+WNDSTRUCT_BITS         = 3
+WNDSTRUCT_POSX         = 4
+WNDSTRUCT_POSY         = 5
+WNDSTRUCT_WIDTH        = 6
+WNDSTRUCT_HEIGHT       = 7
+WNDSTRUCT_TITLESTRING  = 8  ; ptr
 WNDSTRUCT_FIRSTCONTROL = 10 ; ptr
-WNDSTRUCT_NUMCONTROLS = 12
+WNDSTRUCT_NUMCONTROLS  = 12
 WNDSTRUCT_FOCUSED_CTRL = 13
 ; Window Bits
 BIT_WND_HASMENU     = %00000001
@@ -57,6 +64,13 @@ BIT_WND_CANMAXIMIZE = %00010000
 BIT_WND_CANMINIMIZE = %00100000
 BIT_WND_ISMINIMIZED = %01000000
 BIT_WND_ISMAXIMIZED = %10000000
+; Window Bits Ex
+BIT_EX_WND_ISMODAL  = %00000001
+; Specific last ex bit, overridden
+; by the following ones
+BIT_EX_WND_SPECIFIC = %10000000
+BIT_EX_WND_ISDISK   = %10000000
+BIT_EX_WND_ISERRMSG = %10000000
 ;----------------------------------
 ; Control struct members
 ;
@@ -74,14 +88,15 @@ CTRLSTRUCT_TOP_INDEX = 10
 CTRLSTRUCT_NUMSTRINGS = 11
 CTRLSTRUCT_STRINGS = 12
 CTRLSTRUCT_ID = 14
+CTRLSTRUCT_BITS_EX = 15
 ;
 ; For Menubar control
 CTRLSTRUCT_MENULIST = 4
 ; For UpDown control
-CTRLSTRUCT_LOWERLIMIT = 8
-CTRLSTRUCT_UPPERLIMIT = 9
-CTRLSTRUCT_DIGIT_LO = 10
-CTRLSTRUCT_DIGIT_HI = 11
+CTRLSTRUCT_LOWERLIMIT = 10
+CTRLSTRUCT_UPPERLIMIT = 11
+CTRLSTRUCT_DIGIT_LO = 12
+CTRLSTRUCT_DIGIT_HI = 13
 ; For Progressbar control
 CTRLSTRUCT_MAX_LO = 10
 CTRLSTRUCT_MAX_HI = 11
@@ -91,15 +106,29 @@ CTRLSTRUCT_VAL_HI = 13
 CTRLSTRUCT_CARRETPOS = 9
 CTRLSTRUCT_MAX_STRLEN = 10
 CTRLSTRUCT_FORBIDDEN = 14; ptr to forbidden chars
+; For TextViewBox control
+CTRLSTRUCT_ISTEXT = 9
+CTRLSTRUCT_TOPLO = 10
+CTRLSTRUCT_TOPHI = 11
+CTRLSTRUCT_FILEADDRLO = 14
+CTRLSTRUCT_FILEADDRHI = 15
 ;----------------------------------
 ; Control Bits
-BIT_CTRL_ISMAXIMIZED = %00000001
-BIT_CTRL_ISPRESSED   = %00000010
-BIT_CTRL_UPPERCASE   = %00000100
+BIT_CTRL_ISMAXIMIZED  = %00000001
+BIT_CTRL_ISPRESSED    = %00000010
+BIT_CTRL_UPPERCASE    = %00000100
+BIT_CTRL_DBLFRAME_TOP = %00001000
+BIT_CTRL_DBLFRAME_BTM = %00010000
+BIT_CTRL_DBLFRAME_RGT = %00100000
+BIT_CTRL_DBLFRAME_LFT = %01000000
+; Extended control bits
+BIT_EX_CTRL_NOFRAME_TOP = %00000001
+BIT_EX_CTRL_NOFRAME_BTM = %00000010
 ; Window Types (do not start with 0!!!)
-WT_DRIVE_8 = 1
-WT_DRIVE_9 = 2
+WT_DRIVE_A = 1
+WT_DRIVE_B = 2
 WT_SETTINGS = 3
+WT_FILEVIEW = 4
 WT_DLG = 32 ; dummy - must be overwritten
 WT_DLG_INFO = 33
 WT_DLG_CLOCK = 34
@@ -108,6 +137,7 @@ WT_DLG_RENAME = 36
 WT_DLG_FORMAT = 37
 WT_DLG_DISKINFO = 38
 WT_DLG_COPYFILE = 39
+WT_DLG_DEVNO = 40
 WT_TEST = 255
 ; Control Types (must not be zero!!!)
 CT_MENUBAR = 255
@@ -124,6 +154,7 @@ CT_LABEL_ML = 10
 CT_UPDOWN = 11
 CT_PROGRESSBAR = 12
 CT_COLBOXLABEL = 13
+CT_TEXTVIEWBOX = 14
 ; Control IDs
 ID_BTN_CANCEL = 1
 ID_BTN_APPLY = 2
@@ -136,22 +167,82 @@ ID_MENU_START = 0
 ID_MENU_COLORPICKER = 1
 ID_MENU_DISK = 2
 ID_MENU_FILE = 3
+ID_MENU_OPTS = 4
+;
 ID_MI_DISKREFRESH = 0
-ID_MI_DISKINFO = 1
-ID_MI_DISKFORMAT = 2
-ID_MI_DISKRENAME = 3
-ID_MI_DISKCLOSE = 4
+ID_MI_DEVICENO = 1
+ID_MI_DISKINFO = 2
+ID_MI_DISKFORMAT = 3
+ID_MI_DISKRENAME = 4
+ID_MI_DISKCLOSE = 5
+;
 ID_MI_FILECUT = 0
 ID_MI_FILECOPY = 1
 ID_MI_FILEPASTE = 2
 ID_MI_FILEDELETE = 3
 ID_MI_FILERENAME = 4
-ID_MI_FILERUN = 5
-ID_MI_FILEBOOT = 6
+ID_MI_FILEVIEW = 5
+ID_MI_FILERUN = 6
+ID_MI_FILEBOOT = 7
+;
+ID_MI_SHOWSIZES = 0
+ID_MI_GUI64INFO = 1
+;
+ID_MI_VIEWTEXT_UC = 0
+ID_MI_VIEWTEXT_LC = 1
+ID_MI_VIEWHEX = 2
+ID_MI_VIEWCLOSE = 3
 ; Menu types
 MT_NORMAL = 0
 MT_COLORPICKER = 1
+; Game Modes
+GM_NORMAL = 0
+GM_MENU = 1
+GM_DIALOG = 255
+; Exit Codes
+EC_RBTNPRESS = 1
+EC_RBTNRELEASE = 2
+EC_LBTNPRESS = 3
+EC_LBTNRELEASE = 4
+EC_MOUSEMOVE = 5
+EC_GAMEEXIT = 6
+EC_DBLCLICK = 7
+EC_SCROLLWHEELDOWN = 8
+EC_SCROLLWHEELUP = 9
+EC_KEYPRESS = 10
+EC_LLBTNPRESS = 11
+EC_RUNFILE = 12
+EC_BOOTFILE = 13
+; Other
+StartMenuWidth = 10
+StartMenuHeight = 5
+StartMenuItems = 2
+TB_Reserved_Char = 118
+TB_Reserved = TASKCHARBASE+TB_Reserved_Char*8
+DT_Reserved_Char = 240
+DT_Reserved = CHARBASE+DT_Reserved_Char*8
+;Sprite Blocks
+SP_Mouse0            = (Mousepointer0-SpriteData+SPRITEBASE)/64
+SP_Mouse1            = (Mousepointer1-SpriteData+SPRITEBASE)/64
+SP_Commodore1        = (Commodore1-SpriteData+SPRITEBASE)/64
+SP_Commodore2        = (Commodore2-SpriteData+SPRITEBASE)/64
+SP_StartBtnUL        = (StartBtnUL-SpriteData+SPRITEBASE)/64
+SP_StartBtnLR        = (StartBtnLR-SpriteData+SPRITEBASE)/64
+SP_Balken            = (Balken-SpriteData+SPRITEBASE)/64
+SP_BalkenSchmal      = (BalkenSchmal-SpriteData+SPRITEBASE)/64
+SP_ResizeCursorNWSE0 = (ResizeCursorNWSE0-SpriteData+SPRITEBASE)/64
+SP_ResizeCursorNWSE1 = (ResizeCursorNWSE1-SpriteData+SPRITEBASE)/64
+SP_ResizeCursorNS0   = (ResizeCursorNS0-SpriteData+SPRITEBASE)/64
+SP_ResizeCursorNS1   = (ResizeCursorNS1-SpriteData+SPRITEBASE)/64
+SP_ResizeCursorWE0   = (ResizeCursorWE0-SpriteData+SPRITEBASE)/64
+SP_ResizeCursorWE1   = (ResizeCursorWE1-SpriteData+SPRITEBASE)/64
+SP_CarretCursor      = (CarretCursor-SpriteData+SPRITEBASE)/64
+
+
+
+;----------------------------------
 ; VIC Addresses
+;
 xPos0 = VIC
 yPos0 = VIC+1
 xPos1 = VIC+2
@@ -185,6 +276,7 @@ col4  = VIC+43
 col5  = VIC+44
 col6  = VIC+45
 col7  = VIC+46
+; Colors
 CL_BLACK = 0
 CL_WHITE = 1
 CL_RED = 2
@@ -201,6 +293,7 @@ CL_MIDGRAY = 12
 CL_LIGHTGREEN = 13
 CL_LIGHTBLUE = 14
 CL_LIGHTGRAY = 15
+; Sprite pointers
 SPRPTR_0 = SCRMEM+1016
 SPRPTR_1 = SCRMEM+1017
 SPRPTR_2 = SCRMEM+1018
@@ -209,52 +302,10 @@ SPRPTR_4 = SCRMEM+1020
 SPRPTR_5 = SCRMEM+1021
 SPRPTR_6 = SCRMEM+1022
 SPRPTR_7 = SCRMEM+1023
-; Dialog Modes
-DM_RESET = 0
-; Game Modes
-GM_NORMAL = 0
-GM_MENU = 1
-GM_DIALOG = 255
-; Exit Codes
-EC_RBTNPRESS = 1
-EC_RBTNRELEASE = 2
-EC_LBTNPRESS = 3
-EC_LBTNRELEASE = 4
-EC_MOUSEMOVE = 5
-EC_GAMEEXIT = 6
-EC_DBLCLICK = 7
-EC_SCROLLDOWN = 8
-EC_SCROLLUP = 9
-EC_KEYPRESS = 10
-EC_LLBTNPRESS = 11
-EC_RUNFILE = 12
-EC_BOOTFILE = 13
-; Other
-StartMenuWidth = 10
-StartMenuHeight = 5
-StartMenuItems = 2
-TB_Reserved_Char = 118
-TB_Reserved = TaskbarChars+TB_Reserved_Char*8
-DT_Reserved_Char = 240
-DT_Reserved = Chars+DT_Reserved_Char*8
-;Sprite Blocks
-SP_Mouse0 = Mousepointer0/64
-SP_Mouse1 = Mousepointer1/64
-SP_Commodore1 = Commodore1/64
-SP_Commodore2 = Commodore2/64
-SP_StartBtnUL = StartBtnUL/64
-SP_StartBtnLR = StartBtnLR/64
-SP_Balken = Balken/64
-SP_BalkenSchmal = BalkenSchmal/64
-SP_ResizeCursorNWSE0 = ResizeCursorNWSE0/64
-SP_ResizeCursorNWSE1 = ResizeCursorNWSE1/64
-SP_ResizeCursorNS0 = ResizeCursorNS0/64
-SP_ResizeCursorNS1 = ResizeCursorNS1/64
-SP_ResizeCursorWE0 = ResizeCursorWE0/64
-SP_ResizeCursorWE1 = ResizeCursorWE1/64
-SP_CarretCursor = CarretCursor/64
 
+;-------------------------------------
 ; Routines in Kernal ROM and BASIC ROM
+;
 STATUS = $90   ; status register
 STROUT = $AB1E ; Prints string in A (lo) and Y (hi) to output file defined by CHKOUT
 CLRSCR = $E544 ; Clears the screen

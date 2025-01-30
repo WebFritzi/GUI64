@@ -1,12 +1,3 @@
-;; Checks if system is PAL or NTSC and respectively
-;; If carry is clear then it's NTSC
-;PALNTSC         lda $d012
-;-               cmp $d012
-;                beq -
-;                bmi PALNTSC
-;                cmp #$20
-;                rts
-
 char_offset     !byte 39,15
 SetBkgPattern   lda CSTM_DeskPattern
                 pha
@@ -14,39 +5,26 @@ SetBkgPattern   lda CSTM_DeskPattern
                 lda char_offset,x
                 tax
                 ldy #7
--               lda Chars,x
-                sta Chars,y
-                sta TaskbarChars,y
+-               lda CHARBASE,x
+                sta CHARBASE,y
+                sta TASKCHARBASE,y
                 dex
                 dey
                 bpl -
                 pla
                 beq +
                 ; Dotted
-                lda #<(DriveBkgDottedFull/64)
+                lda #<((DriveBkgDottedFull-SpriteData+SPRITEBASE)/64)
                 sta SP_DriveBkgFull
-                lda #<(DriveBkgDottedLeft/64)
+                lda #<((DriveBkgDottedLeft-SpriteData+SPRITEBASE)/64)
                 sta SP_DriveBkgLeft
                 rts
 +               ; Solid
-                lda #<(DriveBkgSolidFull/64)
+                lda #<((DriveBkgSolidFull-SpriteData+SPRITEBASE)/64)
                 sta SP_DriveBkgFull
-                lda #<(DriveBkgSolidLeft/64)
+                lda #<((DriveBkgSolidLeft-SpriteData+SPRITEBASE)/64)
                 sta SP_DriveBkgLeft
                 rts
-
-IsAtPressedPoint
-                lda #0
-                sta res
-                lda MouseInfo
-                cmp PressedPoint
-                bne +
-                lda MouseInfo+1
-                cmp PressedPoint+1
-                bne +
-                lda #1
-                sta res
-+               rts
 
 ; Expects: cursor index in Param
 SetCursor       lda Param
@@ -94,18 +72,7 @@ SetCursor       lda Param
                 sta SPRPTR_1
 +++             rts
 
-;PaintDesktop    jsr PrepareScrBuf
-;                lda #40
-;                sta BufWidth
-;                lda #22
-;                sta BufHeight
-;                lda #<SCRMEM
-;                sta $fb
-;                lda #>SCRMEM
-;                sta $fc
-;                jsr BufToScreen
-;                rts
-
+DevCharIndices  !byte 0,0
 PrepareScrBuf   ; Clear screen
                 ldx #0
 -               lda #0
@@ -120,15 +87,22 @@ PrepareScrBuf   ; Clear screen
                 sta CLR_BUF+$270,x ; until Taskbar
                 inx
                 bne -
-                ; Paint drives
-                lda #58
-                sta SCR_BUF+201
-                lda #59
-                sta SCR_BUF+202
-                lda #62
+                ; Paint drive icons
+                ;
+                ; First row
+                ; A
+                lda DeviceNumbers
+                jsr GetDrvCharInds
                 sta SCR_BUF+41
-                lda #63
+                lda DevCharIndices+1
                 sta SCR_BUF+42
+                ; B
+                lda DeviceNumbers+1
+                jsr GetDrvCharInds
+                sta SCR_BUF+201
+                lda DevCharIndices+1
+                sta SCR_BUF+202
+                ; Second row
                 ldx CSTM_DeskPattern
                 lda DrvSymLeft,x
                 sta SCR_BUF+80
@@ -142,6 +116,7 @@ PrepareScrBuf   ; Clear screen
                 lda DrvSymRight,x
                 sta SCR_BUF+83
                 sta SCR_BUF+243
+                ; Colors
                 lda #15
                 sta CLR_BUF+41
                 sta CLR_BUF+42
@@ -153,37 +128,66 @@ PrepareScrBuf   ; Clear screen
                 sta CLR_BUF+242
                 rts
 
-IsInDrive9Icon  lda #0
-                sta res
-                lda MouseInfo+1
-                cmp #7
-                bcs +
-                cmp #5
-                bcc +
-                lda MouseInfo
-                cmp #3
-                bcs +
-                cmp #1
-                bcc +
-                lda #1
-                sta res
-+               rts
+; Depending on the device number, finds the right
+; char indices in the char set for the drive icons
+; and copies them into DevCharIndices
+GetDrvCharInds  sta file_size; for possible later conversion
+                ldx #0
+                stx file_size+1
+                cmp #8
+                bne +
+                ; It's #8
+                ldx #62
+                stx DevCharIndices
+                inx
+                stx DevCharIndices+1
+                jmp ++
++               cmp #9
+                bne +
+                ; It's #9
+                ldx #58
+                stx DevCharIndices
+                inx
+                stx DevCharIndices+1
+                jmp ++
++               ; It's between 10 and 39
+                jsr ConvertToDec
+                lda file_size_dec
+                lsr
+                lsr
+                lsr
+                lsr
+                clc
+                adc #223
+                sta DevCharIndices
+                lda file_size_dec
+                and #%00001111
+                clc
+                adc #227
+                sta DevCharIndices+1
+++              lda DevCharIndices
+                rts
 
-IsInDrive8Icon  lda #0
-                sta res
-                lda MouseInfo+1
+IsInDriveIcon_B lda MouseInfo+1
+                cmp #7
+                bcs nope
+                cmp #5
+                bcc nope
+                jmp IsIn_X_range
+IsInDriveIcon_A lda MouseInfo+1
                 cmp #3
-                bcs +
+                bcs nope
                 cmp #1
-                bcc +
-                lda MouseInfo
+                bcc nope
+IsIn_X_range    lda MouseInfo
                 cmp #3
-                bcs +
+                bcs nope
                 cmp #1
-                bcc +
+                bcc nope
                 lda #1
-                sta res
-+               rts
+                rts
+nope            lda #0
+                rts
 
 Highlight       lda MayHighlight
                 bne +
@@ -246,9 +250,7 @@ Highlight       lda MayHighlight
                 sta SPR_PRIORITY
                 rts
 
-IsInStartMenu   lda #0
-                sta res
-                jsr MouseToScr
+IsInStartMenu   jsr MouseToScr
                 lda MouseInfo
                 cmp #StartMenuWidth
                 bcs +
@@ -258,10 +260,11 @@ IsInStartMenu   lda #0
                 cmp #22
                 bcs +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
-DrawSpritesDown lda #%01111111
+DrawSpritesDown lda #%00111111
                 sta VIC+21
                 lda #0; no stretch
                 sta VIC+29
@@ -329,7 +332,7 @@ DrawSpritesUp   ; Draw Commodore sprites
                 ;
                 lda #0; no stretch
                 sta VIC+29
-                lda #%11111111
+                lda #%00111111
                 sta VIC+21
                 lda VIC+16
                 and #%11000011
@@ -339,40 +342,28 @@ DrawSpritesUp   ; Draw Commodore sprites
 GetNewDrvSprites
                 lda #1
                 sta Point
-                lda #1
                 sta Point+1
                 jsr IsInWndRect
-                lda res
                 bne ++++
-                lda #2
-                sta Point
+                inc Point
                 jsr IsInWndRect
-                lda res
                 bne +++
-                lda #1
-                sta Point
+                dec Point
                 lda #5
                 sta Point+1
                 jsr IsInWndRect
-                lda res
                 bne ++
-                lda #2
-                sta Point
+                inc Point
                 jsr IsInWndRect
-                lda res
                 bne +
                 lda #%00001111
-                sta NewDriveSprites
-                rts
+                !byte $2c ; skip next 2 bytes
 +               lda #%00001110
-                sta NewDriveSprites
-                rts
+                !byte $2c ; skip next
 ++              lda #%00001100
-                sta NewDriveSprites
-                rts
+                !byte $2c ; skip next
 +++             lda #%00001010
-                sta NewDriveSprites
-                rts
+                !byte $2c ; skip next
 ++++            ; All sprites covered -> delete 'em all
                 lda #0
                 sta NewDriveSprites
@@ -386,33 +377,26 @@ UpdateDrvSprites
                 rts
 
 ; Checks if Point is in current window
-IsInWndRect     lda #0
-                sta res
-                ; X
-                lda Point
+IsInWndRect     lda Point
                 cmp WindowPosX
                 bcc +
-                lda WindowPosX
-                clc
-                adc WindowWidth
-                tax
-                dex
-                cpx Point
-                bcc +
-                ; Y
+                sec
+                sbc WindowPosX
+                cmp WindowWidth
+                bcs +
+                ;
                 lda Point+1
                 cmp WindowPosY
                 bcc +
-                lda WindowPosY
-                clc
-                adc WindowHeight
-                tax
-                dex
-                cpx Point+1
-                bcc +
+                sec
+                sbc WindowPosY
+                cmp WindowHeight
+                bcs +
+                ;
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 DrawDriveSprites
                 lda DriveSprites
@@ -535,8 +519,7 @@ FE              lda WindowBits
                 inx
                 stx WindowHeight
                 jsr UpdateWindow
-                jsr RepaintAll
-                rts
+                jmp RepaintAll
 drag_type_0     ;---------------------------
                 ; Repositioning...
                 ;---------------------------
@@ -585,12 +568,9 @@ drag_type_0     ;---------------------------
                 lda NewPosY
                 sta WindowPosY
                 jsr UpdateWindow
-                jsr RepaintAll
-                rts
+                jmp RepaintAll
 
-IsInStartBtn    lda #0
-                sta res
-                lda MouseInfo+4
+IsInStartBtn    lda MouseInfo+4
                 bne +
                 lda MouseInfo+2
                 cmp #50
@@ -603,29 +583,28 @@ IsInStartBtn    lda #0
                 cmp #248
                 bcs +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
-IsInTaskbar     lda #0
-                sta res
-                lda MouseInfo+1
+IsInTaskbar     lda MouseInfo+1
                 cmp #22
                 bcc+
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 ; Expects mouse in task bar
-IsInTaskBtns    lda #0
-                sta res
-                lda MouseInfo
+IsInTaskBtns    lda MouseInfo
                 cmp #3
                 bcc +
                 cmp #33
                 bcs +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 PaintStartMenu  lda #<Menu_Start
                 sta $fb
@@ -720,18 +699,7 @@ CpyScrClrInfo   ldx MapHeight
                 dex
 -               ldy MapWidth
                 dey
-copy_scrclr     ;sei
-;                lda #52
-;                sta $01
-;                lda $d020
-;                cmp #33
-;                beq +
-;                inc SCRMEM
-;+               lda #54
-;                sta $01
-;                cli
-
-                lda $FFFF,y; fill with scr from
+copy_scrclr     lda $FFFF,y; fill with scr from
                 sta $FFFF,y; fill with scr to
                 lda $FFFF,y; fill with clr from
                 sta $FFFF,y; fill with clr to
@@ -770,114 +738,6 @@ copy_scrclr     ;sei
                 bpl -
                 rts
 
-;SMC_ScrFrom_BS = copy_scrclr_bs+1
-;SMC_ScrTo_BS   = copy_scrclr_bs+4
-;SMC_ClrFrom_BS = copy_scrclr_bs+7
-;SMC_ClrTo_BS   = copy_scrclr_bs+10
-;; Expects:
-;;  MapWidth, MapHeight, BufWidth,
-;;  SMC_ScrFrom, SMC_ScrTo
-;CpyBufToScreen  ; Prepare color addresses
-;                lda SMC_ScrFrom_BS
-;                sta SMC_ClrFrom_BS
-;                lda SMC_ScrFrom_BS+1
-;                clc
-;                adc #$04
-;                sta SMC_ClrFrom_BS+1
-;                lda SMC_ScrTo_BS
-;                sta SMC_ClrTo_BS
-;                lda SMC_ScrTo_BS+1
-;                clc
-;                adc #$d4;#>CLRMEM_MINUS_SCRMEM
-;                sta SMC_ClrTo_BS+1
-;                ; Start loop
-;                ldx MapHeight
-;                dex
-;-               ldy MapWidth
-;                dey
-;copy_scrclr_bs  lda $FFFF,y; fill with scr from
-;                sta $FFFF,y; fill with scr to
-;                lda $FFFF,y; fill with clr from
-;                sta $FFFF,y; fill with clr to
-;                ;----------------------
-;                dey
-;                bpl copy_scrclr_bs
-;                ; Update SMC_ScrFrom and SMC_ClrFrom
-;                lda SMC_ScrFrom_BS
-;                clc
-;                adc BufWidth
-;                sta SMC_ScrFrom_BS
-;                sta SMC_ClrFrom_BS
-;                bcc +
-;                inc SMC_ScrFrom_BS+1
-;                inc SMC_ClrFrom_BS+1
-;+               ; Update SMC_ScrTo and SMC_ClrTo
-;                lda SMC_ScrTo_BS
-;                clc
-;                adc #40
-;                sta SMC_ScrTo_BS
-;                sta SMC_ClrTo_BS
-;                bcc +
-;                inc SMC_ScrTo_BS+1
-;                inc SMC_ClrTo_BS+1
-;+               dex
-;                bpl -
-;                rts
-;
-;SMC_ScrFrom_SB = copy_scrclr_sb+1
-;SMC_ScrTo_SB   = copy_scrclr_sb+4
-;SMC_ClrFrom_SB = copy_scrclr_sb+7
-;SMC_ClrTo_SB   = copy_scrclr_sb+10
-;; Expects:
-;;  MapWidth, MapHeight, GapFrom, GapTo,
-;;  SMC_ScrFrom, SMC_ScrTo
-;CpyScrToBuf     ; Prepare color addresses
-;                lda SMC_ScrFrom_SB
-;                sta SMC_ClrFrom_SB
-;                lda SMC_ScrFrom_SB+1
-;                clc
-;                adc #>CLRMEM_MINUS_SCRMEM
-;                sta SMC_ClrFrom_SB+1
-;                lda SMC_ScrTo_SB
-;                sta SMC_ClrTo_SB
-;                lda SMC_ScrTo_SB+1
-;                clc
-;                adc #$04
-;                sta SMC_ClrTo_SB+1
-;                ; Start loop
-;                ldx MapHeight
-;                dex
-;-               ldy MapWidth
-;                dey
-;copy_scrclr_sb  lda $FFFF,y; fill with scr from
-;                sta $FFFF,y; fill with scr to
-;                lda $FFFF,y; fill with clr from
-;                sta $FFFF,y; fill with clr to
-;                ;----------------------
-;                dey
-;                bpl copy_scrclr_sb
-;                ; Update SMC_ScrFrom and SMC_ClrFrom
-;                lda SMC_ScrFrom_SB
-;                clc
-;                adc #40
-;                sta SMC_ScrFrom_SB
-;                sta SMC_ClrFrom_SB
-;                bcc +
-;                inc SMC_ScrFrom_SB+1
-;                inc SMC_ClrFrom_SB+1
-;+               ; Update SMC_ScrTo and SMC_ClrTo
-;                lda SMC_ScrTo_SB
-;                clc
-;                adc BufWidth
-;                sta SMC_ScrTo_SB
-;                sta SMC_ClrTo_SB
-;                bcc +
-;                inc SMC_ScrTo_SB+1
-;                inc SMC_ClrTo_SB+1
-;+               dex
-;                bpl -
-;                rts
-
 ; Chooses VIC bank at VIC_BANK
 ; Sets screen memory address at SCRMEM
 ; Chooses char set at CHAR_BASE
@@ -887,27 +747,21 @@ SetGraphicsEnvironment
                 lda $dd02
                 ora #%00000011
                 sta $dd02
-                lda #>VICBANK
-                lsr
-                lsr
-                lsr
-                lsr
-                lsr
-                lsr
+                ; Note that bits 0-5 in >VICBANK are 0
+                lda #>VICBANK  ; 76543210    c = carry
+                rol            ; 6543210c    7
+                rol            ; 543210c7    6
+                rol            ; 43210c76    5
                 eor #%00000011
                 sta $fc
                 lda $dd00
                 and #%11111100
                 ora $fc
                 sta $dd00
-                ; Choose default char set at CHAR_BASE
-                lda #>(CHARBASE - VICBANK) ; hibyte of $1000 = $9000 - $8000
-                lsr
-                lsr
-                sta $fc
+                ; Choose char set at CHAR_BASE
                 lda $d018
                 and #%11110001
-                ora $fc
+                ora #((>(CHARBASE - VICBANK))/4);#MAINCHARSHI
                 sta $d018
                 ; Choose screen ram at SCRMEM
                 lda #>(SCRMEM - VICBANK) ; hibyte of $1400 = 5400 - 4000
@@ -915,7 +769,7 @@ SetGraphicsEnvironment
                 asl
                 sta $fc
                 lda $d018
-                and #$0f
+                and #%00001111
                 ora $fc
                 sta $d018
                 ;

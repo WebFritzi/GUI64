@@ -1,3 +1,9 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ControlFunctions.asm                                     ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; In this file the default behavior of controls is defined ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; Needs wndParam filled with exit code
 ; and local control struct filled with the control
 ControlsProc    lda ControlType
@@ -22,10 +28,107 @@ ControlsProc    lda ControlType
 +               cmp #CT_EDIT_SL
                 bne +
                 jmp ActionInEdit_SL
++               cmp #CT_TEXTVIEWBOX
+                bne +
+                jmp ActionInTextViewBox
 +               rts
 
 ActionInMenubar ;
                 rts
+
+ActionInTextViewBox
+                lda wndParam
+                cmp #EC_LBTNPRESS
+                beq view_lbtnpress
+                cmp #EC_KEYPRESS
+                beq view_keypress
+                cmp #EC_SCROLLWHEELUP
+                beq viewscroll_up
+                cmp #EC_SCROLLWHEELDOWN
+                beq viewscroll_down
+                rts
+view_lbtnpress  ; EC_LBTNPRESS
+                ldx MousePosInWndX
+                inx
+                cpx ControlWidth
+                beq in_viewscrolbar
+                ; Not in Scrollbar
+                rts
+in_viewscrolbar ; In scrollbar
+                lda MousePosInWndY
+                cmp #2
+                bcc viewscroll_up
+                ldx ControlHeight
+                dex
+                cpx MousePosInWndY
+                bne +
+                rts
++               dex
+                cpx MousePosInWndY
+                beq viewscroll_down
+                rts
+view_keypress   ; EC_KEYPRESS
+                rts
+viewscroll_up   ; EC_SCROLLWHEELUP
+                lda ControlParent+CTRLSTRUCT_ISTEXT
+                beq +
+                ; Scroll up text
+                rts
++               ; Scroll up hex
+                lda ControlParent+CTRLSTRUCT_TOPLO
+                sec
+                sbc BytesPerLine
+                sta dummy
+                lda ControlParent+CTRLSTRUCT_TOPHI
+                sbc #0
+                sta dummy+1
+                cmp #>FILEVIEWERBUF_START
+                bne +
+                lda dummy
+                cmp #<FILEVIEWERBUF_START
++               bcs +
+                lda #<FILEVIEWERBUF_START
+                sta dummy
+                lda #>FILEVIEWERBUF_START
+                sta dummy+1
++               lda dummy
+                sta ControlParent+CTRLSTRUCT_TOPLO
+                lda dummy+1
+                sta ControlParent+CTRLSTRUCT_TOPHI
+                jmp view_finish
+viewscroll_down ; EC_SCROLLWHEELDOWN
+                lda ControlParent+CTRLSTRUCT_ISTEXT
+                beq +
+                ; Scroll down text
+                rts
++               ; Scroll down hex
+                ldx HeightMinus2
+                dex
+                lda ControlParent+CTRLSTRUCT_TOPLO
+                sta $fb
+                lda ControlParent+CTRLSTRUCT_TOPHI
+                sta $fc
+                ;
+-               lda BytesPerLine
+                jsr AddToFB
+                dex
+                bpl -
+                lda $fb
+                cmp ViewerEOF
+                lda $fc
+                sbc ViewerEOF+1
+                bcc +
+                rts
++               lda ControlParent+CTRLSTRUCT_TOPLO
+                clc
+                adc BytesPerLine
+                sta ControlParent+CTRLSTRUCT_TOPLO
+                lda ControlParent+CTRLSTRUCT_TOPHI
+                adc #0
+                sta ControlParent+CTRLSTRUCT_TOPHI
+view_finish     jsr UpdateControl
+                jsr PaintControl
+                jmp WindowToScreen
 
 ActionInEdit_SL lda wndParam
                 cmp #EC_LBTNPRESS
@@ -92,8 +195,11 @@ ActionInUpDown  lda wndParam
                 jmp down
 +               jmp up
 ++              ldx ControlPosY
+                lda ControlBitsEx
+                and #BIT_EX_CTRL_NOFRAME_TOP
+                bne +
                 inx
-                cpx MousePosInWndY
++               cpx MousePosInWndY
                 bne ++++
                 ;
                 lda ControlParent+CTRLSTRUCT_DIGIT_HI
@@ -107,9 +213,9 @@ ActionInUpDown  lda wndParam
                 lda wndParam
                 cmp #EC_LBTNPRESS
                 beq ++
-                cmp #EC_SCROLLDOWN
+                cmp #EC_SCROLLWHEELDOWN
                 beq +
-                cmp #EC_SCROLLUP
+                cmp #EC_SCROLLWHEELUP
                 bne ++++
                 ; Mouse scroll wheel up
                 jmp up
@@ -184,11 +290,7 @@ ActionInButton  lda wndParam
                 ; Left btn press in button
                 lda ControlBits
                 ora #BIT_CTRL_ISPRESSED
-                sta ControlBits
-                jsr UpdateControl
-                jsr PaintButton
-                jsr WindowToScreen
-                rts
+                jmp finalize
 +               ; Left mouse button released in button
                 cmp #EC_LBTNRELEASE
                 bne + 
@@ -196,16 +298,14 @@ ActionInButton  lda wndParam
                 lda #BIT_CTRL_ISPRESSED
                 eor #%11111111
                 and ControlBits
-                sta ControlBits
-                jsr UpdateControl
-                jsr PaintButton
-                jsr WindowToScreen
-                rts
+                jmp finalize
 +               ; Mouse was moved
                 ; only occurs when mouse enters or leaves button
-                jsr PaintButton
-                jsr WindowToScreen
-                rts
+                jmp +
+finalize        sta ControlBits
+                jsr UpdateControl
++               jsr PaintButton
+                jmp WindowToScreen
 
 ActionInFileListScrollBox
                 lda ControlNumStr
@@ -217,17 +317,22 @@ ActionInFileListScrollBox
                 beq ++
                 cmp #EC_KEYPRESS
                 beq keypress
-                cmp #EC_SCROLLUP
+                cmp #EC_SCROLLWHEELUP
                 beq scroll_up
-                cmp #EC_SCROLLDOWN
+                cmp #EC_SCROLLWHEELDOWN
                 beq scroll_down
 +               rts
+keypress        jmp FLSB_KeyPress
 ++              ; LBTNPRESS
                 ldx MousePosInWndX
+                beq +
                 inx
                 cpx ControlWidth
                 beq in_scrollbar
                 ; In files section
+                inx
+                cpx ControlWidth
+                beq +
                 ldx MousePosInWndY
                 beq +
                 inx
@@ -243,12 +348,11 @@ ActionInFileListScrollBox
                 sta ControlHilIndex
 -               jsr UpdateControl
                 jsr PaintFileListScrollBox
-                jsr WindowToScreen
-                rts
+                jmp WindowToScreen
+                ;
 +               lda #$ff
                 sta ControlHilIndex
                 jmp -
-                rts
 in_scrollbar    ; In Scrollbar
                 lda MousePosInWndY
                 cmp #2
@@ -274,7 +378,6 @@ in_scrollbar    ; In Scrollbar
                 cpx dummy
                 bcs scroll_pg_down
                 rts
-keypress        jmp FLSB_KeyPress
 scroll_up       lda ControlTopIndex
                 beq +
                 dec ControlTopIndex
@@ -303,7 +406,6 @@ scroll_pg_up    ldx ControlTopIndex
 +               lda #0
                 sta ControlTopIndex
                 jmp finish
-                rts
 scroll_pg_down  ldx ControlTopIndex
                 dex
                 dex
@@ -313,11 +415,11 @@ scroll_pg_down  ldx ControlTopIndex
                 sta ControlTopIndex
 finish          jsr UpdateControl
                 jsr PaintCurWindow
-                jsr WindowToScreen
-                rts
+                jmp WindowToScreen
+                ;
 FLSB_KeyPress   lda actkey
                 cmp #$fb
-                bne ++++
+                bne +++
                 ; Crsr up/down pressed
                 ldx ControlHilIndex
                 lda shifted
@@ -346,17 +448,6 @@ FLSB_KeyPress   lda actkey
 +               stx ControlHilIndex
                 jmp finish
 +++             rts
-++++            cmp #$fc
-                bne ++
-                ; Return pressed
-                lda shifted
-                beq +
-                lda #EC_BOOTFILE
-                sta exit_code
-                rts
-+               lda #EC_RUNFILE
-                sta exit_code
-++              rts
 
 ActionInColorPicker
                 lda wndParam
@@ -367,14 +458,12 @@ ActionInColorPicker
                 beq ++
                 ; Click in menu mode
                 jsr IsInCurMenu
-                lda res
                 bne +
                 rts
 +               jsr GetMenuItem
                 lda res
                 sta ControlColor
-                jsr UpdateControl
-                rts
+                jmp UpdateControl
 ++              ; Click in normal mode
                 ; Fill menu struct
                 lda #ID_MENU_COLORPICKER
@@ -474,7 +563,6 @@ GetMenubarWidth lda #0
                 inc res
                 lda res
                 jsr AddToFD
-                ;+AddByteToFD res
                 dex
                 bne -
                 lda $02
@@ -521,8 +609,7 @@ SetCtrlString   lda Param
                 lda $03
                 adc #0
                 sta ControlStrings+1
-                jsr UpdateControl
-                rts
+                jmp UpdateControl
 
 ; Finds control index in cur wnd from mouse pos in MousePosInWndX/Y
 ; Returns control index in res ($ff if mouse is in no control)
@@ -533,7 +620,6 @@ GetCtrlFromPos  ldx WindowNumCtrls
 -               txa
                 jsr SelectControl
                 jsr IsInCurControl
-                lda res
                 beq +
                 ; Exclude frames
                 lda ControlType
@@ -549,9 +635,7 @@ GetCtrlFromPos  ldx WindowNumCtrls
 
 ; Checks if mouse cursor is in current control
 ; Returns res
-IsInCurControl  lda #0
-                sta res
-                lda MousePosInWndX
+IsInCurControl  lda MousePosInWndX
                 cmp ControlPosX
                 bcc +
                 sec
@@ -567,14 +651,12 @@ IsInCurControl  lda #0
                 cmp ControlHeight
                 bcs +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 ; Checks if mouse cursor is in control at FBFC
-; Returns res
-IsInCtrlMiddle  lda #0
-                sta res
-                ldy #CTRLSTRUCT_POSX
+IsInCtrlMiddle  ldy #CTRLSTRUCT_POSX
                 lda ($fb),y
                 cmp MousePosInWndX
                 bcs +
@@ -600,8 +682,9 @@ IsInCtrlMiddle  lda #0
                 cpx MousePosInWndY
                 bcc +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 ; Gets pointer to control struct with index in Param
 ; Result is in FBFC
@@ -624,7 +707,7 @@ GetControlPtr   lda WindowCtrlPtr
                 +AddWordToFB Param, Param+1
                 rts
 
-; Copies control struct of control with index in Param
+; Copies control struct of control with index in A
 ; into local control struct
 ; Expects control index in A
 SelectControl   sta Param

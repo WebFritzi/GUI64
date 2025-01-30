@@ -1,6 +1,46 @@
 ;-------------------------------------------------
 ; Dialog procs
 ;
+DevNoDlgProc    jsr StdWndProc
+                lda wndParam
+                cmp #EC_LBTNRELEASE
+                bne +++
+                jsr IsInCurControl
+                beq +++
+                lda ControlID
+                cmp #ID_BTN_OK
+                bne +++
+                ; Pressed "OK" in device number dialog
+                +SelectControl 1
+                lda ControlParent+CTRLSTRUCT_DIGIT_HI
+                tax
+                lda TimesTen,x
+                sta dummy
+                lda ControlParent+CTRLSTRUCT_DIGIT_LO
+                clc
+                adc dummy
+                sta dummy
+                ;
+                cmp CurDeviceNo
+                beq ++
+                ldx CurDeviceInd
+                txa
+                and #%00000001
+                eor #%00000001
+                tay
+                lda dummy
+                cmp DeviceNumbers,y
+                bne +
+                ; Device numbers equal
+                jsr KillDialog
+                +ShowMessage <Str_Mess_SameDev, >Str_Mess_SameDev
+                rts
++               sta DeviceNumbers,x
+                jsr CloseDlg
+                jmp ShowDirectory
+++              jmp CloseDlg
++++             rts
+
 DiskInfoDlgProc jmp MessageDlgProc
 
 CopyFileDlgProc jsr StdWndProc
@@ -8,7 +48,6 @@ CopyFileDlgProc jsr StdWndProc
                 cmp #EC_LBTNRELEASE
                 bne ++
                 jsr IsInCurControl
-                lda res
                 beq ++
                 lda ControlType
                 cmp #CT_BUTTON
@@ -28,7 +67,6 @@ FormatDlgProc   jsr StdWndProc
                 bne +++
                 jmp format_ok
 +               jsr IsInCurControl
-                lda res
                 beq +++
                 lda ControlID
                 cmp #ID_BTN_OK
@@ -62,14 +100,14 @@ RenameDlgProc   jsr StdWndProc
                 jmp rename_ok
 +               ; LBTNRELEASE
                 jsr IsInCurControl
-                lda res
                 beq ++++
                 lda ControlID
                 cmp #ID_BTN_OK
                 bne +++
 rename_ok       ; "OK" pressed
-                lda WindowAttribute
-                beq ++
+                lda WindowBitsEx
+                and #BIT_EX_WND_ISDISK
+                bne ++
                 ; Rename file
                 jsr RenameFile
                 jmp after
@@ -99,15 +137,10 @@ MessageDlgProc  jsr StdWndProc
                 cmp #EC_LBTNRELEASE
                 bne ++
                 jsr IsInCurControl
-                lda res
                 beq ++
                 lda ControlID
                 cmp #ID_BTN_OK
                 bne ++
-                lda WindowAttribute
-                beq CloseDlg
-                ; Disk error message
-                jsr KillCurWindow
 CloseDlg        jsr KillDialog
                 jsr PaintTaskbar
 ++              rts
@@ -117,7 +150,6 @@ ClockDlgProc    jsr StdWndProc
                 cmp #EC_LBTNRELEASE
                 bne +
                 jsr IsInCurControl
-                lda res
                 beq +
                 lda ControlID
                 cmp #ID_BTN_SET
@@ -142,19 +174,19 @@ YesNoDlgProc    jsr StdWndProc
                 cmp #EC_LBTNRELEASE
                 bne +++
                 jsr IsInCurControl
-                lda res
                 beq +++
                 lda ControlID
                 cmp #ID_BTN_YES
                 bne +
+                ; Clicked on "Yes"
                 lda #1
-                sta DialogResult
                 jmp ++
 +               cmp #ID_BTN_NO
                 bne +++
+                ; Clicked on "No"
                 lda #0
-                sta DialogResult
-++              jsr CloseDlg
+++              sta DialogResult
+                jsr CloseDlg
                 jmp (ModalAddress)
 +++             rts
 
@@ -166,7 +198,6 @@ YesNoDlgProc    jsr StdWndProc
 ; Is called at the end of each show_dialog function
 ShowTheDialog   jsr PaintCurWindow
                 jsr WindowToScreen
-                ;
                 lda #GM_DIALOG
                 sta GameMode
                 rts
@@ -182,12 +213,16 @@ ShowAreYouSureDlg
                 sta $fc
                 jmp ShowYesNoDlg
 
-AdjustCtrlPos   inc StringHeight
-                dec StringWidth
-                dec StringWidth
-                dec StringWidth
-                +ControlSetPosXPosY StringWidth, StringHeight
-                rts
+AdjustCtrlPos   ldx StringHeight
+                inx
+                stx ControlPosY
+                ldx StringWidth
+                inx
+                txa
+                sec
+                sbc ControlWidth
+                sta ControlPosX
+                jmp UpdateControl
 
 ; Shows question dlg with multi-line string in FBFC
 ; and title in FDFE
@@ -206,11 +241,12 @@ ShowYesNoDlg    lda $fb
                 +ControlSetID ID_BTN_NO
                 ;
                 +AddControl <Ctrl_YN_YesBtn, >Ctrl_YN_YesBtn
-                lda StringWidth
+                jsr AdjustCtrlPos
+                lda ControlPosX
                 sec
-                sbc #6
-                sta StringWidth
-                +ControlSetPosXPosY StringWidth, StringHeight
+                sbc #5
+                sta ControlPosX
+                jsr UpdateControl
                 +ControlSetID ID_BTN_YES
                 ;
                 jmp ShowTheDialog
@@ -240,13 +276,75 @@ ShowErrorMsg    jsr CreateMsgDlg
                 jmp ShowTheDialog
 
 ; Shows copy file dialog
+ShowDeviceNoDlg lda WindowOnHeap
+                sta $a0
+                lda WindowOnHeap+1
+                sta $a1
+                ;
+                jsr GetCurDeviceNo
+                jsr DeactivateWnd
+                lda #<Wnd_Dlg_DevNo
+                sta $fb
+                lda #>Wnd_Dlg_DevNo
+                sta $fc
+                jsr CreateWindow
+                ; Set dialog position
+                ldy #WNDSTRUCT_POSX
+                lda ($a0),y
+                clc
+                adc #8
+                sta WindowPosX
+                iny
+                lda ($a0),y
+                sta WindowPosY
+                jsr UpdateWindow
+                ; Set label "A:" or "B:"
+                +SelectControl 0
+                lda CurDeviceInd
+                tax
+                clc
+                adc #$61
+                sta Ctrl_DN_DevInd
+                ; UpDown
+                +SelectControl 1
+                lda ControlBits
+                ora #BIT_CTRL_DBLFRAME_TOP
+                sta ControlBits
+                lda DeviceNumbers,x
+                sta file_size
+                lda #0
+                sta file_size+1
+                jsr ConvertToDec
+                lda file_size_dec
+                and #%11110000
+                lsr
+                lsr
+                lsr
+                lsr
+                sta ControlParent+CTRLSTRUCT_DIGIT_HI
+                lda file_size_dec
+                and #%00001111
+                sta ControlParent+CTRLSTRUCT_DIGIT_LO
+                lda #CL_WHITE
+                sta ControlColor
+                lda #8
+                sta ControlParent+CTRLSTRUCT_LOWERLIMIT
+                lda #$30
+                sta ControlParent+CTRLSTRUCT_UPPERLIMIT                
+                jsr UpdateControl
+                ; OK button
+                +SelectControl 2
+                +ControlSetID ID_BTN_OK
+                jmp ShowTheDialog
+
+; Shows copy file dialog
 ShowCopyFileDlg jsr DeactivateWnd
                 lda #<Wnd_Dlg_CopyFile
                 sta $fb
                 lda #>Wnd_Dlg_CopyFile
                 sta $fc
                 jsr CreateWindow
-                ;
+                ; Progressbar
                 +SelectControl 0
                 lda FileSizeHex
                 sta ControlParent+CTRLSTRUCT_MAX_LO
@@ -256,35 +354,27 @@ ShowCopyFileDlg jsr DeactivateWnd
                 sta ControlParent+CTRLSTRUCT_VAL_LO
                 sta ControlParent+CTRLSTRUCT_VAL_HI
                 jsr UpdateControl
-                ;
+                ; Filename label
                 +SelectControl 1
                 lda #BIT_CTRL_UPPERCASE
                 sta ControlBits
                 +ControlSetString <Str_FileName, >Str_FileName, 0
-                ;
+                ; Label "From A/B to B/A" label
                 +SelectControl 2
-                ;
-                lda DiskToCopyFrom
-                cmp #8
-                bne +
-                lda #$38
-                ldx #11
+                lda DiskToCopyFrom+1
+                clc
+                adc #$61
+                ldx #10
                 sta Ctrl_CF_Label2,x
-                lda #$39
-                ldx #17
+                lda DiskToCopyTo+1
+                clc
+                adc #$61
+                ldx #15
                 sta Ctrl_CF_Label2,x
-                jmp ++
-+               lda #$39
-                ldx #11
-                sta Ctrl_CF_Label2,x
-                lda #$38
-                ldx #17
-                sta Ctrl_CF_Label2,x
-++              jmp ShowTheDialog
-                rts
+                jmp ShowTheDialog
 
 ; Shows disk info dialog
-ShowDiskInfoDlg jsr GetDeviceNumber
+ShowDiskInfoDlg jsr GetCurDeviceNo
                 jsr DeactivateWnd
                 ;
                 lda #<Wnd_Dlg_DiskInfo
@@ -293,18 +383,14 @@ ShowDiskInfoDlg jsr GetDeviceNumber
                 sta $fc
                 jsr CreateWindow
                 ;
-                +SelectControl 5
+                +SelectControl 3
                 +ControlSetColorVal CL_DARKBLUE
-                +SelectControl 6
+                +SelectControl 4
                 +ControlSetColorVal CL_WHITE
-                +SelectControl 13
+                +SelectControl 11
                 +ControlSetID ID_BTN_OK
                 ;
-                lda DeviceNumber
-                sec
-                sbc #8
-                sta dummy
-                tax
+                ldx CurDeviceInd
                 +SelectControl 0
                 lda DiskSizeHexLo,x
                 sta ControlParent+CTRLSTRUCT_MAX_LO
@@ -330,40 +416,39 @@ ShowDiskInfoDlg jsr GetDeviceNumber
                 dey
                 bpl -
 ++              ldx #3
-                lda dummy
+                lda CurDeviceInd
                 bne +
-                ; Drive 8                
--               lda Str_DriveType8,x
+                ; Drive A                
+-               lda Str_DriveTypeA,x
                 sta Ctrl_DI_Label6+5,x
-                lda Str_DiskSize8,x
+                lda Str_DiskSizeA,x
                 sta Ctrl_DI_Label9+5,x
-                lda Str_Occupied8,x
+                lda Str_OccupiedA,x
                 sta Ctrl_DI_Label10+5,x
-                lda Str_BlocksFree8,x
+                lda Str_BlocksFreeA,x
                 sta Ctrl_DI_Label11+5,x
-                lda Str_NumFiles8,x
+                lda Str_NumFilesA,x
                 sta Ctrl_DI_Label8+5,x
                 dex
                 bpl -                
                 jmp ShowTheDialog
-+               ; Drive 9
--               lda Str_DriveType9,x
++               ; Drive B
+-               lda Str_DriveTypeB,x
                 sta Ctrl_DI_Label6+5,x
-                lda Str_DiskSize9,x
+                lda Str_DiskSizeB,x
                 sta Ctrl_DI_Label9+5,x
-                lda Str_Occupied9,x
+                lda Str_OccupiedB,x
                 sta Ctrl_DI_Label10+5,x
-                lda Str_BlocksFree9,x
+                lda Str_BlocksFreeB,x
                 sta Ctrl_DI_Label11+5,x
-                lda Str_NumFiles9,x
+                lda Str_NumFilesB,x
                 sta Ctrl_DI_Label8+5,x
                 dex
                 bpl -
                 jmp ShowTheDialog
-                rts
 
 ; Shows format dialog
-ShowFormatDlg   jsr GetDeviceNumber
+ShowFormatDlg   jsr GetCurDeviceNo
                 jsr DeactivateWnd
                 ;
                 lda #<Wnd_Dlg_Format
@@ -397,7 +482,6 @@ ShowFormatDlg   jsr GetDeviceNumber
                 +ControlSetID ID_BTN_OK
                 ;
                 jmp ShowTheDialog
-                rts
 
 ; Shows rename dialog
 ; Requires:
@@ -405,7 +489,7 @@ ShowFormatDlg   jsr GetDeviceNumber
 ; * Str_FileName
 ShowRenameDlg   pha
                 jsr DeactivateWnd
-                jsr GetDeviceNumber
+                jsr GetCurDeviceNo
                 ;
                 lda #<Wnd_Dlg_Rename
                 sta $fb
@@ -439,7 +523,7 @@ ShowRenameDlg   pha
                 beq +
                 ; Rename file
                 +SetCurWndTitle <Str_Dlg_Ren_File, >Str_Dlg_Ren_File
-                +SetCurWndAttribute 1
+                +DelBitExFromCurWnd BIT_EX_WND_ISDISK
                 +SelectControl 0
                 +ControlSetString <Str_Mess_OldFile, >Str_Mess_OldFile, 0
                 +SelectControl 2
@@ -447,14 +531,13 @@ ShowRenameDlg   pha
                 jmp ++
 +               ; Rename disk
                 +SetCurWndTitle <Str_Dlg_Ren_Disk, >Str_Dlg_Ren_Disk
-                +SetCurWndAttribute 0
+                +AddBitExToCurWnd BIT_EX_WND_ISDISK
                 +SelectControl 0
                 +ControlSetString <Str_Mess_OldDisk, >Str_Mess_OldDisk, 0
                 +SelectControl 2
                 +ControlSetString <Str_Mess_NewDisk, >Str_Mess_NewDisk, 0
                 ;
 ++              jmp ShowTheDialog
-                rts
 
 ShowClockDialog jsr DeactivateWnd
                 lda #<Wnd_Dlg_Clock
@@ -474,6 +557,9 @@ ShowClockDialog jsr DeactivateWnd
                 sta ControlParent+CTRLSTRUCT_DIGIT_HI
                 lda Clock+1
                 sta ControlParent+CTRLSTRUCT_DIGIT_LO
+                lda #(BIT_CTRL_DBLFRAME_RGT + BIT_CTRL_DBLFRAME_LFT)
+                ora ControlBits
+                sta ControlBits
                 jsr UpdateControl
                 ;
                 +SelectControl 1
@@ -487,13 +573,15 @@ ShowClockDialog jsr DeactivateWnd
                 sta ControlParent+CTRLSTRUCT_DIGIT_HI
                 lda Clock+3
                 sta ControlParent+CTRLSTRUCT_DIGIT_LO
+                lda #(BIT_CTRL_DBLFRAME_RGT + BIT_CTRL_DBLFRAME_LFT)
+                ora ControlBits
+                sta ControlBits
                 jsr UpdateControl
                 ;
                 +SelectControl 2
                 +ControlSetID ID_BTN_SET
                 ;
                 jmp ShowTheDialog
-                rts
 
 ; Adds a multiline label at pos (1,1) to dialog
 ; with string at address (dummy,dummy+1)
@@ -539,5 +627,4 @@ AddMLLabelToDlg lda dummy
                 sta $03
                 lda #0
                 sta Param
-                jsr SetCtrlString
-                rts
+                jmp SetCtrlString

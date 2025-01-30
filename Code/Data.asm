@@ -1,6 +1,12 @@
+DeviceNumbers   !byte 8,9
+IsDiskDrive     !byte 1,1; 0 for non-disk drives (SD2IEC etc.)
+CurDeviceInd    !byte 0; 0 for drive A, 1 for drive B
+CurDeviceNo     !byte 8
+;-------------------------------
 dummy           !byte 0,0
 Param           !byte 0,0
 Clock           !byte 0,0,0,0
+MayShowClock    !byte 1
 StartBtnPushed  !byte 0
 MenuItem        !byte 0
 OldMenuItem     !byte 255
@@ -19,7 +25,6 @@ WndAddressInBuf !byte 0,0
 BufWidth        !byte 0
 BufHeight       !byte 0
 CurrentCursor   !byte 0
-PressedPoint    !byte 0,0
 Point           !byte 0,0
 DriveSprites    !byte %00001111
 NewDriveSprites !byte 0
@@ -27,13 +32,12 @@ MousePosInWndX  !byte 0
 MousePosInWndY  !byte 0
 StringWidth     !byte 0
 StringHeight    !byte 0
-DeviceNumber    !byte 0
 ControlPressed  !byte 0
 ; Copy info --------------------
 CanCopy         !byte 0
 IsCut           !byte 0
-DiskToCopyFrom  !byte 0
-DiskToCopyTo    !byte 0
+DiskToCopyFrom  !byte 0,0 ;DevNo, Ind
+DiskToCopyTo    !byte 0,0 ;DevNo, Ind
 ; FileName is in Str_FileName
 FileSizeHex     !byte 0,0
 ; Task bar ---------------------
@@ -54,19 +58,18 @@ NewHeight       !byte 0
 CSTM_ActiveClr  !byte CL_ORANGE
 CSTM_DeactiveClr!byte CL_MIDGRAY
 CSTM_SelectClr  !byte CL_LIGHTGREEN
+CSTM_MenuSelClr !byte CL_MIDGRAY
 CSTM_WindowClr  !byte CL_LIGHTGRAY
 CSTM_DesktopClr !byte CL_LIGHTBLUE
-; If you change it, also change SP_DriveBkgFull, SP_DriveBkgLeft,
-; and the first char in _taskbar chars_
 CSTM_DeskPattern!byte 0; 0 for solid, 1 for dotted
-SP_DriveBkgFull !byte 0;<(DriveBkgSolidFull/64)
-SP_DriveBkgLeft !byte 0;<(DriveBkgSolidLeft/64)
+SP_DriveBkgFull !byte 0; are set in SetBkgPattern
+SP_DriveBkgLeft !byte 0
 ;---- Window data -------------
 WindowOnHeap    !byte 0,0
 ; Complete window struct for current window
 CurrentWindow   !byte 255 ; Index/handle of current window (0-15)
 WindowType      !byte 0
-WindowAttribute !byte 0
+WindowBitsEx    !byte 0
 WindowBits      !byte 0; see constants for documentation
 WindowPosX      !byte 0
 WindowPosY      !byte 0
@@ -101,7 +104,7 @@ ControlTopIndex !byte 0
 ControlNumStr   !byte 0
 ControlStrings  !byte 0,0
 ControlID       !byte 0
-ControlReserved !byte 0
+ControlBitsEx   !byte 0
 ;------------------------------
 ; Menu info
 CurrentMenu     !byte 0,0 ; ptr to cur menu
@@ -132,11 +135,11 @@ BufClrTabHi     !byte $d8,$d8,$d8,$d8,$d8,$d8,$d8,$d9,$d9,$d9,$d9,$d9
                 !byte $d9,$da,$da,$da,$da,$da,$da,$da,$db,$db,$db,$db,$db
 TaskBtnWidths   !byte 0,11,11,10,7,6,5,4
 TaskBtnHandles  !byte 0,0,0,0,0,0,0
-; For drives 8 and 9
-StringListDrvLo !byte <STRING_LIST_DRIVE8, <STRING_LIST_DRIVE9
-StringListDrvHi !byte >STRING_LIST_DRIVE8, >STRING_LIST_DRIVE9
-Str_Title_DrvLo !byte <Str_Title_Drive8, <Str_Title_Drive9
-Str_Title_DrvHi !byte >Str_Title_Drive8, >Str_Title_Drive9
+; For drives A and B
+StringListDrvLo !byte <STRING_LIST_DRIVEA, <STRING_LIST_DRIVEB
+StringListDrvHi !byte >STRING_LIST_DRIVEA, >STRING_LIST_DRIVEB
+Str_Title_DrvLo !byte <Str_Title_DriveA, <Str_Title_DriveB
+Str_Title_DrvHi !byte >Str_Title_DriveA, >Str_Title_DriveB
 BlocksFreeHexLo !byte 0,0
 BlocksFreeHexHi !byte 0,0
 DiskSizeHexLo   !byte 0,0
@@ -146,22 +149,24 @@ FileListBoxesLo !byte 0,0
 FileListBoxesHi !byte 0,0
 DrvSymLeft      !byte 41,2
 DrvSymRight     !byte 37,3
-; DiskInfo #8
-Str_DriveType8  !pet "0000"
-Str_DiskSize8   !pet "0000"
-Str_Occupied8   !pet "0000"
-Str_BlocksFree8 !pet "1111"
-Str_NumFiles8   !pet "2222"
-; DiskInfo #9
-Str_DriveType9  !pet "0000"
-Str_DiskSize9   !pet "0000"
-Str_Occupied9   !pet "0000"
-Str_BlocksFree9 !pet "1111"
-Str_NumFiles9   !pet "2222"
+OptsMenuChecks  !byte %00000011,%00000011
+; DiskInfo A
+Str_DriveTypeA  !pet "0000"
+Str_DiskSizeA   !pet "0000"
+Str_OccupiedA   !pet "0000"
+Str_BlocksFreeA !pet "1111"
+Str_NumFilesA   !pet "2222"
+; DiskInfo B
+Str_DriveTypeB  !pet "0000"
+Str_DiskSizeB   !pet "0000"
+Str_OccupiedB   !pet "0000"
+Str_BlocksFreeB !pet "1111"
+Str_NumFilesB   !pet "2222"
 ;------------------------------
-; Custom error strings beyonf 1-29 (BASIC errors)
+; Custom error strings beyond 1-29 (BASIC errors)
 CustomErrorsLO  !byte <Str_Err_WritProt, <Str_Err_NA
 CustomErrorsHI  !byte >Str_Err_WritProt, >Str_Err_NA
 ; Variable strings
 Str_FileName    !pet "0123456789abcdef",0
+Str_FileType    !pet "xy"; Two letters to distinguish between DIR and DEL
 Str_FilenameEdit!pet "0123456789abcdef",0

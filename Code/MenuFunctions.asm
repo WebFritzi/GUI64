@@ -33,7 +33,7 @@ SelectMenuLine  txa
                 ;
                 ldy CurMenuWidth
                 dey
-                lda CSTM_ActiveClr
+                lda CSTM_MenuSelClr
 -               sta ($fd),y
                 dey
                 bpl -
@@ -58,9 +58,7 @@ GetMenuItem     jsr GetMouseInfo
 ++              stx res
                 rts
 
-IsInCurMenu     lda #0
-                sta res
-                jsr GetMouseInfo
+IsInCurMenu     jsr GetMouseInfo
                 lda MouseInfo
                 cmp CurMenuPosX
                 bcc +
@@ -76,8 +74,9 @@ IsInCurMenu     lda #0
                 cmp CurMenuHeight
                 bcs +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 ; Expects menu ptr in FBFC
 PaintMenuToBuf  ldy #0
@@ -127,17 +126,13 @@ PaintMenuToBuf  ldy #0
                 ; Set ptr to string list
                 lda #3
                 jsr AddToFB
-                ;+AddValToFB 3
                 ; Now buf ptr is in FDFE, and string list is in FBFC
 -               jsr PrintStringLC
                 ; Y is str len
                 iny
-                sty dummy
                 tya
                 jsr AddToFB
-                ;+AddByteToFB dummy
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 dex
                 bne -
                 rts
@@ -209,21 +204,17 @@ Menubar_ShowMenu
                 adc CurMenuWidth
                 cmp #41
                 bcc +
-                sbc dummy;#40
+                sbc dummy
                 sbc CurMenuPosX
                 jsr minus
                 txa
-                ;sec
-                ;sbc dummy
                 sta CurMenuPosX
 +               ; Bring buffer to screen ----
                 ;
                 ldx CurMenuPosY
                 ldy CurMenuPosX
                 jsr PosToScrMemFB
-                jsr BufToScreen
-                rts
-
+                jmp BufToScreen
 
 ; Expects menubar in local control struct
 ; Returns selected menubar index

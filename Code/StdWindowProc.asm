@@ -11,9 +11,9 @@ StdWndProc      jsr GetMousePosInWnd
                 beq StdW_LBRelProc
                 cmp #EC_MOUSEMOVE
                 beq StdW_MMoveProc
-                cmp #EC_SCROLLDOWN
+                cmp #EC_SCROLLWHEELDOWN
                 beq StdW_ScrWhlProc
-                cmp #EC_SCROLLUP
+                cmp #EC_SCROLLWHEELUP
                 beq StdW_ScrWhlProc
                 cmp #EC_KEYPRESS
                 beq StdW_KeyPrsProc
@@ -82,8 +82,7 @@ StdW_ScrolWheel jsr GetCtrlFromPos
                 jsr ControlsProc
 +               rts
 ;----------------------------------------------
-StdW_KeyPress   jsr ControlsProc
-                rts
+StdW_KeyPress   jmp ControlsProc
 ;----------------------------------------------
 StdWnd_LBRel    ; Left button released
                 lda wndParam+1
@@ -97,8 +96,7 @@ Std_RelInNM     lda ControlPressed
 +               ; Some control is pressed
                 lda #0
                 sta ControlPressed
-                jsr ControlsProc
-                rts
+                jmp ControlsProc
 Std_RelInMM     ;
                 rts
 Std_RelInDM     ;
@@ -114,7 +112,6 @@ Std_MovInNMDM   ; Moved in normal AND dialog mode
                 beq +++
                 ; Control is pressed
                 jsr IsInCurControl
-                lda res
                 beq +
                 ; Is in cur ctrl
                 lda ControlBits
@@ -126,7 +123,6 @@ Std_MovInNMDM   ; Moved in normal AND dialog mode
                 sta ControlBits
                 jsr UpdateControl
                 jmp ControlsProc
-                rts
 +               ; Is not in cur ctrl
                 lda ControlBits
                 and #BIT_CTRL_ISPRESSED
@@ -149,14 +145,11 @@ Std_MovInNMDM   ; Moved in normal AND dialog mode
                 cmp #CT_EDIT_SL
                 bne +
                 jsr IsInCtrlMiddle
-                lda res
                 beq +
                 +SetCursor CUR_CARRET
 +               pla
-                jsr SelectControl
-                rts
+                jmp SelectControl
 Std_MovInMM     jsr IsInCurMenu
-                lda res
                 beq ++
                 ; In cur menu
                 lda CurMenuID

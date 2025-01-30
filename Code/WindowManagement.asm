@@ -7,8 +7,7 @@ CurWnd_SetDefSize
                 lda WindowBits
                 and #%01111111 ; not BIT_WND_ISMAXIMIZED
                 sta WindowBits
-                jsr UpdateWindow
-                rts
+                jmp UpdateWindow
 
 MaximizeCurWnd  lda WindowBits
                 and #(BIT_WND_FIXEDWIDTH + BIT_WND_FIXEDHEIGHT)
@@ -22,7 +21,6 @@ MaximizeCurWnd  lda WindowBits
                 lda #22
                 sta WindowHeight
                 jmp maximize
-                rts
 +               ; Fixed width or height
                 lda WindowBits
                 and #BIT_WND_FIXEDWIDTH
@@ -33,7 +31,6 @@ MaximizeCurWnd  lda WindowBits
                 lda #40
                 sta WindowWidth
                 jmp maximize
-                rts
 +               ; Fixed width
                 lda #0
                 sta WindowPosY
@@ -42,8 +39,7 @@ MaximizeCurWnd  lda WindowBits
 maximize        lda WindowBits
                 ora #BIT_WND_ISMAXIMIZED
                 sta WindowBits
-                jsr UpdateWindow
-                rts
+                jmp UpdateWindow
 
 MaximizeCurCtrl lda #0
                 sta ControlPosX
@@ -58,29 +54,25 @@ MaximizeCurCtrl lda #0
                 dex
 +               txa
                 sta ControlHeight
-                jsr UpdateControl
-                rts
+                jmp UpdateControl
 
 ; Checks if wnd in FB is visible (not minimized)
 ; return val in res
-IsWndVisible    lda #0
-                sta res
-                ldy #WNDSTRUCT_BITS
+IsWndVisible    ldy #WNDSTRUCT_BITS
                 lda ($fb),y
                 and #BIT_WND_ISMINIMIZED
                 bne +
                 lda #1
-                sta res
-+               rts
+                rts
++               lda #0
+                rts
 
 ; Minimizes current window and moves it to end of priority list
-;
 MinimizeCurWnd  ; Check if already minimized
                 lda WindowBits
                 and #BIT_WND_ISMINIMIZED
-                beq +
-                rts
-+               ; Move cur wnd to the end of priority list
+                bne +
+                ; Move cur wnd to the end of priority list
                 lda WindowBits
                 ora #BIT_WND_ISMINIMIZED
                 sta WindowBits
@@ -156,7 +148,6 @@ UpdateWindow    lda WindowOnHeap
 SelectTopWindow ; Find wnd in PriorityList
                 ldx AllocedWindows
                 bne find
-                ;bne find
                 rts
                 dex
 find            lda WndPriorityList,x
@@ -211,12 +202,12 @@ IsWndTypePresent
                 beq ++
                 lda #16
                 jsr AddToFB
-                ;+AddValToFB 16
                 dex
                 bpl -
 +               lda #0
-                sta res
-++              rts
+                rts
+++              lda #1
+                rts
 
 ; Creates a window with controls
 ; Requires a table in FBFC with the following data:
@@ -285,8 +276,7 @@ CreateWindowByData
                 iny
                 lda ($fb),y
                 sta WindowProc+1
-                jsr CreateWindowLL
-                rts
+                jmp CreateWindowLL
 
 ; Expects WindowType, WindowBits, Window geometry, WindowTitle, and WindowProc filled
 ; Returns 0 in res if not successfull, 1 otherwise
@@ -324,7 +314,7 @@ CreateWindowLL  lda #0
                 sta WindowOnHeap+1
                 ; Zero-fill rest of static window struct
                 lda #0
-                sta WindowAttribute
+                sta WindowBitsEx
                 sta WindowCtrlPtr
                 sta WindowCtrlPtr+1
                 sta WindowNumCtrls
@@ -396,8 +386,7 @@ AddControl      lda CSTM_WindowClr
                 lda $fc
                 adc #0
                 sta ControlStrings+1
-                jsr UpdateControl
-                rts
+                jmp UpdateControl
 
 ; Adds a control to current window with info from ctrl struct from Data.asm
 AddControlLL    ; Fill entries in static ctrl struct which have not 
@@ -414,7 +403,7 @@ AddControlLL    ; Fill entries in static ctrl struct which have not
                 sta ControlStrings
                 sta ControlStrings+1
                 sta ControlID
-                sta ControlReserved
+                sta ControlBitsEx
                 ; Update controls heap
                 lda EofCtrlsHeap
                 sta $04

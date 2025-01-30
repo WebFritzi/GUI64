@@ -67,7 +67,7 @@ SetGlobals      ; Install mouse pointer sprites
                 sta col1
 
                 ; Turn on sprites
-                lda #%11111111
+                lda #%00111111
                 sta VIC+21
 
                 ; Colors:
@@ -183,8 +183,7 @@ TODInit         lda $01          ;Save $01
                 bcc +            ;- Then we already have correct 60Hz $dc0e value
                 lda #$80         ;Otherwise, we need to set it to 50Hz
                 sta $dc0e
-+
-                lda #$1b         ;Enable the display again
++               lda #$1b         ;Enable the display again
                 sta $d011
 
                 pla              ;Restore old $01 value
@@ -233,7 +232,9 @@ SetTOD          lda $dc0f
                 sta $dc09
                 rts
 
-DisplayClock    lda #':'
+DisplayClock    lda MayShowClock
+                beq ++
+                lda #':'
                 sta SCRMEM+23*40+34+2
 
                 lda $dc0a
@@ -289,4 +290,4 @@ am              txa
                 sta Clock+1
                 ora #$30
                 sta SCRMEM+23*40+35
-                rts
+++              rts

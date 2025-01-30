@@ -1,10 +1,42 @@
-BlackTaskbar    ldx #39
-                lda #220
+BlackTaskbar    ; Make it solid
+                lda #0
+                sta MayShowClock
+                ldx #39
+                lda #160;#239
 -               sta SCRMEM+880,x
                 sta SCRMEM+880+40,x
                 sta SCRMEM+880+80,x
                 dex
                 bpl -
+                ; Use color CSTM_WindowClr
+                ldx #39
+                lda CSTM_WindowClr
+-               sta CLRMEM+880,x
+                sta CLRMEM+880+40,x
+                sta CLRMEM+880+80,x
+                dex
+                bpl -
+                ; Add disk symbol in lower left
+                lda #220
+                sta SCRMEM+880
+                lda #221
+                sta SCRMEM+881
+                lda #222
+                sta SCRMEM+880+40
+                lda #223
+                sta SCRMEM+880+41
+                lda #237
+                sta SCRMEM+880+80
+                lda #238
+                sta SCRMEM+880+81
+                ; Add "Disk access..."
+                ldx #13
+-               lda Str_DiskAccess,x
+                jsr PetLCtoDesktop
+                sta SCRMEM+880+40+3,x
+                dex
+                bpl -
+                rts
 
 ; Gets task button index from mouse pos
 ; expects mouse in task buttons
@@ -34,7 +66,7 @@ GetTaskBtnIndex lda #$ff
 
 SetTaskbarColors
                 ldx #39
--               lda #9
+-               lda #8
                 sta $db70,x
                 sta $db98,x
                 sta $dbc0,x
@@ -92,6 +124,11 @@ PaintTaskbar    ; Paint taskbar without buttons
                 sta window_counter
                 sta tb_index
                 sta TaskBtnPos
+                ; Wait for line 250 to avoid nasty effects
+                ; with reserved area in char set
+-               lda $d012
+                cmp #250
+                bcc -
 -               lda #0
                 ldx window_counter
                 cpx CurrentWindow
@@ -105,6 +142,7 @@ PaintTaskbar    ; Paint taskbar without buttons
                 lda ($fb),y
                 and #BIT_WND_CANMINIMIZE
                 beq +
+                ; Can minimize
                 ldx tb_index
                 lda window_counter
                 sta TaskBtnHandles,x
@@ -125,7 +163,7 @@ PaintTaskbar    ; Paint taskbar without buttons
                 cmp MinableWindows
                 bcc -
 ++              ; To screen
-                ldx #32;#119
+                ldx #32
 -               lda TASKBAR_BUF,x
                 sta SCRMEM+$370,x
                 lda TASKBAR_BUF+40,x
@@ -135,9 +173,7 @@ PaintTaskbar    ; Paint taskbar without buttons
                 dex
                 bpl -
                 ; Clock
-                jsr DrawClockButton
-                jsr DisplayClock
-                rts
+                jmp DrawClockButton
 
 TB_offset       !byte 0
 ; Expects TaskBtnPos, TaskBtnWidth, TaskBtnPressed and FDFE filled
@@ -207,14 +243,14 @@ DisplayTBString ; Prepare Param+1 for string display
                 sta Param+1
                 ldy #WNDSTRUCT_TYPE
                 lda ($fb),y
-                cmp #WT_DRIVE_8
+                cmp #WT_DRIVE_A
                 beq +
-                cmp #WT_DRIVE_9
-                beq +
-                jmp ++
+                cmp #WT_DRIVE_B
+                bne ++
 +               lda #1
                 sta Param+1
-++              ; Adjust colors to hires and multicolor
+++              ; Adjust colors
+                ; HiRes for text
                 lda #$99
                 clc
                 adc TB_offset
@@ -229,7 +265,7 @@ DisplayTBString ; Prepare Param+1 for string display
 -               sta ($fb),y
                 dey
                 bpl -
-                ; Multicolor
+                ; Multicolor for edges
                 lda #$98
                 clc
                 adc TB_offset
@@ -251,7 +287,6 @@ DisplayTBString ; Prepare Param+1 for string display
                 sta $fc
                 lda TB_offset
                 jsr AddToFB
-                ;+AddByteToFB TB_offset
                 ldx TaskBtnWidth
                 dex
                 dex

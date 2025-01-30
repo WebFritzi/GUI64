@@ -130,9 +130,23 @@
                 jsr SelectControl
 !end
 
-!macro SetCurWndAttribute val
+;!macro SetCurWndAttribute val
+;                lda #val
+;                sta WindowAttribute
+;                jsr UpdateWindow
+;!end
+!macro AddBitExToCurWnd val
+                lda WindowBitsEx
+                ora #val
+                sta WindowBitsEx
+                jsr UpdateWindow
+!end
+
+!macro DelBitExFromCurWnd val
                 lda #val
-                sta WindowAttribute
+                eor #%11111111
+                and WindowBitsEx
+                sta WindowBitsEx
                 jsr UpdateWindow
 !end
 

@@ -15,10 +15,8 @@ PrintStringLC_ML
                 sty string_width_plus_1
                 tya
                 jsr AddToFB
-                ;+AddByteToFB string_width_plus_1
                 dey
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 jmp --
 +               jsr PetLCtoDesktop
                 sta ($fd),y
@@ -58,23 +56,6 @@ GetStringInfo   lda #0
 +               rts
 string_width_plus_1    !byte 0
 
-; Prints string from FBFC to FDFE
-; with lower case conversion
-; and returns string len in res
-PrintStringLC   ldy #0
-                lda $fe
-                cmp #$ff
-                beq +
-                ldy #$ff
--               iny
-                lda ($fb),y
-                beq +
-                jsr PetLCtoDesktop
-                sta ($fd),y
-                jmp -
-+               sty res
-                rts
-
 ; Prints dir string from FBFC to FDFE
 ; with upper case conversion
 PrintDirString  lda $fe
@@ -97,6 +78,23 @@ PrintDirString  lda $fe
                 ldy oldy
                 jmp -
 ++              rts
+
+; Prints string from FBFC to FDFE
+; with lower case conversion
+; and returns string len in res
+PrintStringLC   ldy #0
+                lda $fe
+                cmp #$ff
+                beq +
+                ldy #$ff
+-               iny
+                lda ($fb),y
+                beq +
+                jsr PetLCtoDesktop
+                sta ($fd),y
+                jmp -
++               sty res
+                rts
 
 ; Prints string from FBFC to FDFE
 ; with upper case conversion
@@ -150,9 +148,9 @@ PrintStrTaskbar dec Param
                 lda ($fd),y
                 beq +++
                 ; Prepare copy char
-                lda #<TaskbarChars
+                lda #<TASKCHARBASE
                 sta smc1+1
-                lda #>TaskbarChars
+                lda #>TASKCHARBASE
                 sta smc2+1
                 lda #<TB_Reserved
                 sta smc3+1
@@ -261,7 +259,6 @@ PressReserved_TB
                 sta ($fb),y
                 lda #8
                 jsr AddToFB
-                ;+AddValToFB 8
                 inx
                 cpx #11
                 bcc --
@@ -340,9 +337,9 @@ GenerateReservedForSM
                 sta smc3+1
                 lda #>DT_Reserved
                 sta smc4+1
-                lda #<Chars
+                lda #<CHARBASE
                 sta smc1+1
-                lda #>Chars
+                lda #>CHARBASE
                 sta smc2+1
                 ;
                 ldx #16
@@ -430,7 +427,8 @@ PetUCtoDesktop  cmp #32
                 bcs +
                 ; 193 <= a < 219
                 rts
-+               lda #191
++               ; 219 <= a
+                lda #191
                 rts
 
 PetLCtoDesktop  cmp #32
@@ -465,7 +463,10 @@ PetLCtoDesktop  cmp #32
                 sec
                 sbc #64
                 rts
-+               lda #191
++               ; 219 <= a
+                ;lda #191
+                sec
+                sbc #172
                 rts
 
 PetUCtoTaskbar  cmp #32
@@ -497,7 +498,8 @@ PetUCtoTaskbar  cmp #32
                 ; 192 <= a < 218
                 and #%01111111
                 rts
-+               lda #191
++               ; 218 <= a
+                lda #63
                 rts
 
 PetLCtoTaskbar  cmp #32
@@ -534,5 +536,6 @@ PetLCtoTaskbar  cmp #32
                 sec
                 sbc #192
                 rts
-+               lda #63
++               ; 219 <= a
+                lda #63
                 rts

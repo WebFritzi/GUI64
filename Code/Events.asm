@@ -10,7 +10,6 @@ OnScrollWheel   sta wndParam; EC_LLBTNPRESS / EC_SCROLLUP/DOWN
                 cmp #GM_MENU
                 beq back_to_ml
                 jsr IsInCurWnd
-                lda res
                 beq back_to_ml
 JustPassOn      lda #GM_NORMAL
                 sta wndParam+1
@@ -24,11 +23,9 @@ OnDblClick      jsr OnLBtnPress
 +               ; Only processed in curr wnd and desktop
                 jsr GetMouseInfo
                 jsr IsInCurWnd
-                lda res
                 beq ++
                 ; In current window
                 jsr IsInTitleBar
-                lda res
                 bne +
                 ; Not in title bar
                 lda #EC_DBLCLICK
@@ -36,17 +33,14 @@ OnDblClick      jsr OnLBtnPress
                 lda #GM_NORMAL
                 sta wndParam+1
                 jmp (WindowProc)
-                rts
 +               ; Dbl clicked in title bar
                 jsr IsInMinMaxClose
-                lda res
                 bne +
                 lda WindowBits
                 and #BIT_WND_CANMAXIMIZE
                 beq +
                 jsr MaximizeCurWnd
-                jsr RepaintAll
-                rts
+                jmp RepaintAll
 ++              ; Not in current window
                 jsr WindowFromPos
                 lda res
@@ -56,7 +50,6 @@ OnDblClick      jsr OnLBtnPress
                 rts
 +               ; Not in a window
                 jsr IsInTaskbar
-                lda res
                 beq ++
                 ; In taskbar
                 lda MouseInfo
@@ -67,31 +60,27 @@ OnDblClick      jsr OnLBtnPress
                 jsr ShowClockDialog
                 rts
 ++              ; On desktop
-                jsr IsInDrive8Icon
-                lda res
+                jsr IsInDriveIcon_A
                 beq ++
-                ; In drive 8
-                lda #WT_DRIVE_8
+                ; In drive A
+                lda #WT_DRIVE_A
                 sta Param
                 jsr IsWndTypePresent
-                lda res
                 bne driveWndExists
                 jsr DeactivateWnd
-                lda #WT_DRIVE_8
+                lda #WT_DRIVE_A
                 jmp createDriveWnd
-++              ; Not in drive 8
-                jsr IsInDrive9Icon
-                lda res
+++              ; Not in drive A
+                jsr IsInDriveIcon_B
                 bne +
                 rts
-+               ; In drive 9
-                lda #WT_DRIVE_9
++               ; In drive B
+                lda #WT_DRIVE_B
                 sta Param
                 jsr IsWndTypePresent
-                lda res
                 bne driveWndExists
                 jsr DeactivateWnd
-                lda #WT_DRIVE_9
+                lda #WT_DRIVE_B
 createDriveWnd  jsr CreateDriveWnd
                 lda res
                 beq ++
@@ -113,8 +102,7 @@ set_wh          sta WindowHeight
                 ldx CurrentWindow
                 sta WndDefHeight,x
                 jsr UpdateWindow
-                jsr RepaintAll
-                rts
+                jmp RepaintAll
 driveWndExists  ldy #WNDSTRUCT_HANDLE
                 lda ($fb),y
                 sta Param
@@ -126,11 +114,7 @@ driveWndExists  ldy #WNDSTRUCT_HANDLE
 
 ;============================================= OnButtonPress
 ; Right Button------------------------------------------------
-OnRBtnPress     jsr IsInCurWnd
-                lda res
-                beq +
-                ;          
-+               rts
+OnRBtnPress     rts
 
 ; Left Button-------------------------------------------------
 OnLBtnPress     jsr GetMouseInfo
@@ -143,11 +127,7 @@ ClickInMM       jmp ClickInMenuMode
 ClickInDM       jmp ClickInDlgMode
 
 ClickInNormalMode
-                lda #$ff
-                sta PressedPoint
-                sta PressedPoint+1
                 jsr IsInStartBtn
-                lda res
                 beq +
                 ; In Start button
                 lda #1
@@ -156,15 +136,12 @@ ClickInNormalMode
                 sta GameMode
                 jsr GenerateReservedForSM
                 jsr InvertReserved_DT
-                jsr PaintStartMenu
-                rts
+                jmp PaintStartMenu
 +               ; Not in Start button
                 jsr IsInTaskbar
-                lda res
                 beq ++
                 ; In task bar
                 jsr IsInTaskBtns
-                lda res
                 bne +
                 ; Not in task buttons
                 rts
@@ -179,33 +156,57 @@ ClickInNormalMode
                 bne +
                 lda CurrentWindow
                 bmi +
-                jsr MinimizeCurWnd
-                jsr RepaintAll
-                jsr PaintTaskbar
-                rts
+                jmp minimize
+                ;
 +               lda Param
                 jsr ChangeActiveWnd
-                jsr RestoreCurWnd
-                rts
+                jmp RestoreCurWnd
 ++              ; Not in task bar
                 jsr IsInCurWnd
+                bne ClickInCurWnd
+                ; Not in cur window
+                jsr WindowFromPos
                 lda res
-                beq +++
-                ; In cur window
+                bmi +
+                jsr IsWndVisible
+                beq +
+                ldy #0
+                lda ($fb),y
+                jsr ChangeActiveWnd
+                jmp ClickInNormalMode
++               rts
+ClickInCurWnd   ; In cur window
                 jsr IsInTitleBar
-                lda res
-                beq ++
+                beq ++++
                 ; In title bar
                 jsr IsInMinMaxClose
-                lda res
-                beq +
+                beq +++
                 ; In min/max/close symbol
-                lda MouseInfo
-                sta PressedPoint
-                lda MouseInfo+1
-                sta PressedPoint+1
+                cmp #3
+                bne +
+minimize        ; In minimize symbol
+                jsr MinimizeCurWnd
+                jsr RepaintAll
+                jmp PaintTaskbar
+                ;
++               cmp #2
+                bne ++
+                ; In maximize symbol
+                lda WindowBits
+                and #BIT_WND_ISMAXIMIZED
+                beq +
+                jsr CurWnd_SetDefSize
+                jmp rep
++               jsr MaximizeCurWnd
+rep             jmp RepaintAll
+++              ; In close symbol
+                jsr KillCurWindow
+                jsr RepaintAll
+                jsr PaintTaskbar
+                lda #GM_NORMAL
+                sta GameMode
                 rts
-+               ; Not in min/max/close symbols
++++             ; Not in min/max/close symbols
                 lda WindowPosX
                 sta OldPosX
                 lda MouseInfo
@@ -215,7 +216,7 @@ ClickInNormalMode
                 lda #1
                 sta MayDragWnd
                 rts
-++              ; Not in title bar
+++++            ; Not in title bar
                 lda CurrentCursor
                 cmp #CUR_DEFAULT
                 beq +
@@ -235,26 +236,13 @@ ClickInNormalMode
                 lda #GM_NORMAL
                 sta wndParam+1
                 jmp (WindowProc)
-+++             ; Not in cur window
-                jsr WindowFromPos
-                lda res
-                bmi +
-                jsr IsWndVisible
-                lda res
-                beq +
-                ldy #0
-                lda ($fb),y
-                jsr ChangeActiveWnd
-                jmp ClickInNormalMode
-+               rts
 ChangeActiveWnd ; Not on desktop
                 sta Param
                 jsr DeactivateWnd
                 jsr SelectTopWindow
                 jsr PaintCurWindow
                 jsr WindowToScreen
-                jsr PaintTaskbar
-                rts
+                jmp PaintTaskbar
 
 ClickInMenuMode lda StartBtnPushed
                 bne CloseStartMenu
@@ -264,7 +252,6 @@ ClickInMenuMode lda StartBtnPushed
                 lda #GM_MENU
                 sta wndParam+1
                 jmp (WindowProc)
-                rts
 CloseStartMenu  lda #0
                 sta StartBtnPushed
                 sta MayHighlight
@@ -274,7 +261,6 @@ CloseStartMenu  lda #0
                 jsr PaintStartMenu
                 jsr RepaintAll
                 jsr IsInStartMenu
-                lda res
                 beq +
                 ; Clicked in StartMenu
                 lda MenuItem
@@ -283,7 +269,6 @@ CloseStartMenu  lda #0
                 lda #WT_SETTINGS
                 sta Param
                 jsr IsWndTypePresent
-                lda res
                 bne +
                 jsr DeactivateWnd
                 jsr CreateSettingsWindow
@@ -300,7 +285,7 @@ ClickedOnReset  ; Clicked on Reset
                 sta ModalAddress
                 lda #>mod_res2
                 sta ModalAddress+1
-                jsr ShowAreYouSureDlg
+                jmp ShowAreYouSureDlg
 mod_res2        lda DialogResult
                 cmp #1
                 bne ++
@@ -309,9 +294,8 @@ mod_res2        lda DialogResult
 ++              rts
 
 ClickInDlgMode  jsr IsInCurWnd
-                lda res
                 beq +
-                jmp ClickInNormalMode
+                jmp ClickInCurWnd
 +               rts
 
 ;============================================= OnButtonRelease
@@ -341,46 +325,7 @@ OnLBtnRelease   lda MayDragWnd
                 lda #GM_NORMAL
                 sta wndParam+1
                 jmp (WindowProc)
-+               jsr IsAtPressedPoint
-                lda res
-                bne +
-                ; Not in pressed point
-                rts
-+               ; Is in pressed point
-                jsr IsInTitleBar
-                lda res
-                beq +
-                jsr IsInMinMaxClose
-                lda res
-                beq +++
-                ; In max/close symbols
-                cmp #3
-                bne +
-                ; In minimize symbol
-                jsr MinimizeCurWnd
-                jsr RepaintAll
-                jsr PaintTaskbar
-                rts
-+               cmp #2
-                bne ++
-                ; In maximize symbol
-                lda WindowBits
-                and #BIT_WND_ISMAXIMIZED
-                beq +
-                jsr CurWnd_SetDefSize
-                jmp rep
-+               jsr MaximizeCurWnd
-rep             jsr RepaintAll
-                rts
-++              ; In close symbol
-                jsr KillCurWindow
-                jsr RepaintAll
-                jsr PaintTaskbar
-                lda #GM_NORMAL
-                sta GameMode
-                rts
-+++             ; Not in max/close symbols
-                rts
++               rts
 
 ;============================================= OnMouseMove
 MovInMenuModeP  jmp MovInMenuMode
@@ -411,7 +356,6 @@ Jmp_StdWnd      lda #EC_MOUSEMOVE
 +               rts
 ++              ; Mouse button NOT pressed
                 jsr IsInCurWnd
-                lda res
                 beq ++
                 ; Moved in cur wnd
                 lda WindowBits
@@ -463,7 +407,6 @@ MovInMenuMode   lda StartBtnPushed
                 jmp (WindowProc)
 +               ; Start Button pushed
                 jsr IsInStartMenu
-                lda res
                 bne +
                 lda #0
                 sta MayHighlight
@@ -525,8 +468,8 @@ MovInMenuMode   lda StartBtnPushed
                 lda $fb
                 sta $02
                 lda $fc
-                clc
-                adc #>CLRMEM_MINUS_SCRMEM
+                sec
+                sbc #>SCRMEM_MINUS_CLRMEM
                 sta $03
                 ;
                 lda #0

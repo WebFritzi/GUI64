@@ -1,29 +1,26 @@
 ; Creates a drive wnd with type in A
-CreateDriveWnd  cmp #WT_DRIVE_8
+CreateDriveWnd  cmp #WT_DRIVE_A
                 bne +
-                +CreateWindowByData <Wnd_Drive8, >Wnd_Drive8
+                ; Drive A
+                +CreateWindowByData <Wnd_DriveA, >Wnd_DriveA
                 lda res
                 beq +++
-                lda #8
                 jmp ++
-+               +CreateWindowByData <Wnd_Drive9, >Wnd_Drive9
++               ; Drive B
+                +CreateWindowByData <Wnd_DriveB, >Wnd_DriveB
                 lda res
                 beq +++
-                lda #9
 ++              ;
-                sta DeviceNumber
+                jsr GetCurDeviceInd
                 +AddControl <Ctrl_Drv_Menubar, >Ctrl_Drv_Menubar
-                +ControlSetStringList <Str_DriveMenubar, >Str_DriveMenubar, 2
-                +MenubarAddMenuList <DriveMenus, >DriveMenus
+                +ControlSetStringList <Str_DriveMenubar, >Str_DriveMenubar, 3
+                +MenubarAddMenuList <DriveMenu, >DriveMenu
                 ;
                 +AddControl <Ctrl_Drv_FLB, >Ctrl_Drv_FLB
                 lda #BIT_CTRL_ISMAXIMIZED
                 sta ControlBits
                 +ControlSetColorVal CL_WHITE
-                lda DeviceNumber
-                sec
-                sbc #8
-                tax
+                ldx CurDeviceInd
                 lda ControlOnHeap
                 sta FileListBoxesLo,x
                 lda ControlOnHeap+1
@@ -35,45 +32,205 @@ DriveWndProc    jsr StdWndProc
                 ;
                 lda wndParam+1
                 beq DriveWnd_NM
-                bmi DriveWnd_DM
+                bmi +++
                 ; In menu mode
                 lda wndParam
                 cmp #EC_LBTNPRESS
-                bne ++
+                bne +++
                 ; Mouse btn pressed in MM
                 jsr IsInCurMenu
-                lda res
-                beq ++
+                beq +++
                 lda CurMenuID
                 cmp #ID_MENU_DISK
-                beq +
-                ; Clicked in File menu
-                jsr FileMenuClicked
-                rts
-+               ; Clicked in Disk menu
-                jsr DiskMenuClicked
-++              rts
-DriveWnd_DM     rts
-DriveWnd_NM     lda wndParam
-                cmp #EC_DBLCLICK
                 bne +
+                jmp DiskMenuClicked
++               cmp #ID_MENU_FILE
+                bne +
+                jmp FileMenuClicked
++               jmp OptsMenuClicked
+DriveWnd_NM     ; In normal mode
+                lda wndParam
+                cmp #EC_DBLCLICK
+                bne ++
+                ; Double clicked in normal mode
                 +SelectControl 1
                 jsr IsInCurControl
-                lda res
-                beq +
+                beq +++
                 jsr GetMousePosInWnd
                 ldx MousePosInWndX
                 inx
                 cpx ControlWidth
-                beq +
+                beq +++ ; In scrollbar
                 ldx MousePosInWndY
-                beq +
+                beq +++ ; Above files
                 inx
                 cpx ControlHeight
-                bcs +
+                bcs +++ ; Below files
+                jmp DblClickAction
+++              cmp #EC_KEYPRESS
+                bne +++
+                ; Key pressed in normal mode
+                lda actkey
+                cmp #$fc
+                bne +++
+                ; Return pressed
+                jmp DblClickAction
++++             rts
+
+; Copies filename string of highlighted file in list view
+; to Str_FileName
+; Expects: control FileListScrollBox selected
+; Output:
+; 1 (success) or 0 (error) in res
+; string length is in Y
+GetFileName     lda #0
+                sta res
+                ; Get pointer to string list
+                lda WindowType
+                cmp #WT_DRIVE_A
+                bne +
+                lda #<STRING_LIST_DRIVEA
+                sta $fb
+                lda #>STRING_LIST_DRIVEA
+                sta $fc
+                jmp ++
++               lda #<STRING_LIST_DRIVEB
+                sta $fb
+                lda #>STRING_LIST_DRIVEB
+                sta $fc
+++              ; Find Filename location (FBFC)
+                ldx ControlHilIndex
+                beq +
+                cpx ControlNumStr
+                bcs ++
+-               lda #32
+                jsr AddToFB
+                dex
+                bne -
++               ; Copy file size to FileSizeHex
+                ldy #30
+                lda ($fb),y
+                sta FileSizeHex
+                iny
+                lda ($fb),y
+                sta FileSizeHex+1
+                ; Get first two letters of file type
+                ldy #18
+                lda ($fb),y
+                sta Str_FileType
+                iny
+                lda ($fb),y
+                sta Str_FileType+1
+                ; Copy filename to Str_FileName
+                ldy #$ff
+-               iny
+                lda ($fb),y
+                cmp #1
+                beq +
+                sta Str_FileName,y
+                jmp -
++               lda #0
+                sta Str_FileName,y
+                lda #1
+                sta res
+++              rts
+
+DblClickAction  jsr GetFileName
+                sty IsValidFileExt+1
+                jsr GetCurDeviceNo
+                lda Str_FileType
+                cmp #"S";SEQ
+                bne +
+                jmp ActionViewFile
++               cmp #"U"; USR
+                bne +
+                jmp ActionViewFile
++               ldx CurDeviceInd
+                cmp #"D"; DIR or DEL
+                bne ++
+                lda IsDiskDrive,x
+                bne +++
+                lda Str_FileType+1
+                cmp #"E"; DEL
+                beq +++
+                jsr ChangeDir
+                jmp Thereafter
+++              cmp #"P"; PRG
+                bne +++
+                lda IsDiskDrive,x
+                bne +
+                jsr IsValidFileExt
+                beq +
+                jsr ChangeDir
+                jmp Thereafter
++               ; RUN
                 lda #EC_RUNFILE
                 sta exit_code
-+               rts
++++             rts
+
+Thereafter      lda error_code
+                beq +
+                jmp ShowDiskError
++               jmp ShowDirectory
+
+; Decides on whether file name of PRG ends with ".d64"
+IsValidFileExt  ldy #$FF; Is filled in DblClickAction and is the fn length
+                dey
+                dey
+                dey
+                dey
+                lda Str_FileName,y
+                cmp #"."
+                bne ++
+                iny
+                lda Str_FileName,y
+                cmp #"D"
+                beq +
+                cmp #"d"
+                bne ++
++               iny
+                ; Check for d64
+                lda Str_FileName,y
+                cmp #"6"
+                bne +
+                iny
+                lda Str_FileName,y
+                cmp #"4"
+                bne ++
+                jmp is_valid
++               ; Check for d71/d81
+                iny
+                lda Str_FileName,y
+                cmp #"1"
+                bne +
+                dey
+                lda Str_FileName,y
+                cmp #"7"
+                beq is_valid
+                cmp #"8"
+                bne ++
+                jmp is_valid
++               ; Check for dnp
+                cmp #"P"
+                bne ++
+                dey
+                lda Str_FileName,y
+                cmp #"N"
+                bne ++
+                inc $d020
+is_valid        lda #1
+                rts
+++              lda #0
+                rts
+
+OptsMenuClicked lda CurMenuItem
+                cmp #ID_MI_SHOWSIZES
+                bne +
+                ; Clicked on "Show Sizes"
+                rts
++               ;Clicked on "GUI64 Info"
+                +ShowMessage <Str_Mess_GUI64, >Str_Mess_GUI64
+                rts
 
 FileMenuClicked lda CurMenuItem
                 cmp #ID_MI_FILECUT
@@ -100,11 +257,16 @@ FileMenuClicked lda CurMenuItem
                 bne +
                 ; Clicked on "Rename"
                 jmp ActionRenamFile
++               cmp #ID_MI_FILEVIEW
+                bne +
+                ; Clicked on "View"
+                jmp ActionViewFile
 +               cmp #ID_MI_FILERUN
                 bne +
                 ; Clicked on "Run"
                 lda #EC_RUNFILE
                 sta exit_code
+                rts
 +               cmp #ID_MI_FILEBOOT
                 bne +
                 ; Clicked on "Boot"
@@ -116,8 +278,11 @@ DiskMenuClicked lda CurMenuItem
                 cmp #ID_MI_DISKREFRESH
                 bne +
                 ; Clicked on "Refresh"
-                jsr ShowDirectory
-                rts
+                jmp ShowDirectory
++               cmp #ID_MI_DEVICENO
+                bne +
+                ; Clicked on "Device No"
+                jmp ShowDeviceNoDlg
 +               cmp #ID_MI_DISKINFO
                 bne +
                 ; Clicked on "Info"
@@ -138,39 +303,46 @@ DiskMenuClicked lda CurMenuItem
                 jsr PaintTaskbar
 +               rts
 
+ActionViewFile  jsr GetCurDeviceNo
+                +SelectControl 1
+                lda ControlHilIndex
+                cmp ControlNumStr
+                bcs ++
+                ; Read file from disk into buffer
+                jsr GetFileName
+                jsr ReadFileToViewerBuf
+                lda error_code
+                beq +
+                jmp ShowDiskError
++               jsr PaintTaskbar
+                ; Show viewer window
+                jsr CreateViewerWnd
+                jsr RepaintAll
+                jsr PaintTaskbar
+++              rts
+
 ThrowSpaceError +ShowMessage <Str_Mess_NoSpace, >Str_Mess_NoSpace
                 rts
 
 ActionPasteFile lda CanCopy
                 bne +
                 rts
-+               jsr GetDeviceNumber
-                lda DeviceNumber
++               jsr GetCurDeviceNo
+                lda CurDeviceInd
+                sta DiskToCopyTo+1
+                lda CurDeviceNo
                 sta DiskToCopyTo
                 cmp DiskToCopyFrom
                 bne +
                 +ShowMessage <Str_Mess_NoSameDisk, >Str_Mess_NoSameDisk
                 rts
-+               lda DiskToCopyFrom
-                cmp #8
-                bne +
-                ; From 8 to 9
-                lda BlocksFreeHexLo+1
-                sta dummy
-                lda BlocksFreeHexHi+1
-                sta dummy+1
-                jmp ++
-+               ; From 9 to 8
-                lda BlocksFreeHexLo
-                sta dummy
-                lda BlocksFreeHexHi
-                sta dummy+1
-++              ; Check if there is enough space on disk
-                lda dummy+1
++               ; Check if there is enough space on disk
+                ldx DiskToCopyFrom+1
+                lda BlocksFreeHexHi,x
                 cmp FileSizeHex+1
                 bcc ThrowSpaceError
                 bne ++
-                lda dummy
+                lda BlocksFreeHexLo,x
                 cmp FileSizeHex
                 bcc ThrowSpaceError
 ++              ; Do paste
@@ -181,20 +353,15 @@ ActionPasteFile lda CanCopy
                 beq +
                 ; Error
                 jsr ShowDiskError
-                lda #0
-                sta WindowAttribute
-                jsr UpdateWindow
+                +AddBitExToCurWnd BIT_EX_WND_ISERRMSG
                 jsr bttr
                 jmp InstallIRQ
 +               lda IsCut
                 beq ++
                 lda DiskToCopyFrom
-                sta DeviceNumber
+                sta CurDeviceNo
                 jsr deletefile
-                lda DeviceNumber
-                sec
-                sbc #8
-                tax
+                ldx DiskToCopyFrom+1
                 lda StringListDrvLo,x
                 sta $fb
                 lda StringListDrvHi,x
@@ -213,8 +380,7 @@ ActionPasteFile lda CanCopy
                 jsr GetDiskValues
 ++              jsr bttr
                 jsr RepaintAll
-                jsr ShowDirectory
-                rts
+                jmp ShowDirectory
 
 bttr            lda #0
                 sta CanCopy
@@ -231,38 +397,33 @@ ActionCopyFile  lda #0
                 cmp ControlNumStr
                 bcs +
                 jsr GetFileName
-                ; Get first letter of file type
-                ldy #18
-                lda ($fb),y
+                lda Str_FileType
                 sta write_appendix+1
                 ;
-                jsr GetDeviceNumber
-                lda DeviceNumber
+                jsr GetCurDeviceNo
+                lda CurDeviceNo
                 sta DiskToCopyFrom
+                lda CurDeviceInd
+                sta DiskToCopyFrom+1
                 lda #1
                 sta CanCopy
 +               rts
 
-ActionRenamDisk jsr GetDeviceNumber
-                lda DeviceNumber
-                sec
-                sbc #8
-                tax
+ActionRenamDisk jsr GetCurDeviceNo
+                ldx CurDeviceInd
                 lda Str_Title_DrvLo,x
                 sta $fb
                 lda Str_Title_DrvHi,x
                 sta $fc
                 lda #2
                 jsr AddToFB
-                ;+AddValToFB 2
                 ldy #15
 -               lda ($fb),y
                 sta Str_FileName,y
                 dey
                 bpl -
                 lda #0
-                jsr ShowRenameDlg
-                rts
+                jmp ShowRenameDlg
 
 ActionRenamFile +SelectControl 1
                 lda ControlHilIndex
@@ -277,7 +438,7 @@ ActionDelete    +SelectControl 1
                 lda ControlHilIndex
                 cmp ControlNumStr
                 bcs ++
-                jsr GetDeviceNumber
+                jsr GetCurDeviceNo
                 lda #<Str_Dlg_Delete
                 sta $fd
                 lda #>Str_Dlg_Delete
@@ -294,6 +455,5 @@ mod_res1        lda DialogResult
                 lda error_code
                 beq +
                 jmp ShowDiskError
-                rts
 +               jsr ShowDirectory
 ++              rts

@@ -24,11 +24,11 @@ PaintTitleBar   lda Param
                 txa ; window bits
                 and #BIT_WND_ISMAXIMIZED
                 beq +
-                lda #64
+                lda #48;#220
                 jmp store
 +               lda #45
 store           sta ($fd),y
-++              ; No maximize button
+++              ; No maximize/restore button
                 lda WindowBits
                 and #BIT_WND_CANMINIMIZE
                 beq +
@@ -49,11 +49,10 @@ store           sta ($fd),y
                 sta $fc
                 lda #2
                 jsr AddToFD
-                ;+AddValToFD 2
                 lda WindowType
-                cmp #WT_DRIVE_8
+                cmp #WT_DRIVE_A
                 beq +
-                cmp #WT_DRIVE_9
+                cmp #WT_DRIVE_B
                 beq +
                 lda WindowWidth
                 sec
@@ -131,8 +130,7 @@ WindowToScreen  lda WindowWidth
                 lda WindowPosX
                 jsr AddToFD
                 ;+AddByteToFD WindowPosX
-                jsr BufToScreen
-                rts
+                jmp BufToScreen
 
 ; Paints buffer to screen
 ; Expects:
@@ -150,8 +148,8 @@ BufToScreen     lda #40
                 sta SMC_ClrTo
                 lda $fc
                 sta SMC_ScrTo+1
-                clc
-                adc #>CLRMEM_MINUS_SCRMEM
+                sec
+                sbc #>SCRMEM_MINUS_CLRMEM
                 sta SMC_ClrTo+1
                 lda #<SCR_BUF
                 sta SMC_ScrFrom
@@ -167,8 +165,7 @@ BufToScreen     lda #40
                 lda $d011
                 and #%10000000
                 bne-
-                jsr CpyScrClrInfo
-                rts
+                jmp CpyScrClrInfo
 
 ; Positions in buffer
 BoxPosX         !byte 0

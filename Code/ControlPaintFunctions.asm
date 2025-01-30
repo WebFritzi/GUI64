@@ -83,6 +83,9 @@ PaintCurCtrl    ; Check for types
 +               cmp #CT_COLBOXLABEL
                 bne +
                 jmp PaintColBoxLabel
++               cmp #CT_TEXTVIEWBOX
+                bne +
+                jmp PaintTextViewBox
 +               rts
 
 ;--------------------------------------------------------------
@@ -102,9 +105,7 @@ PaintMenuBar    lda WndAddressInBuf
                 sta $03
                 lda BufWidth
                 jsr AddToFB
-                ;+AddByteToFB BufWidth
                 jsr AddBufWidthTo02
-                ;+AddByteTo02 BufWidth
                 ;
                 ldy WindowWidth
                 dey
@@ -132,11 +133,9 @@ PaintMenuBar    lda WndAddressInBuf
                 inc res
                 lda res
                 jsr AddToFD
-                ;+AddByteToFD res
                 inc res
                 lda res
                 jsr AddToFB
-                ;+AddByteToFB res
                 dex
                 bpl -
                 ; Color
@@ -150,7 +149,7 @@ PaintMenuBar    lda WndAddressInBuf
                 lda ControlHilIndex
                 bmi +
                 ldy offsetR
-                lda CSTM_ActiveClr
+                lda CSTM_MenuSelClr
 -               sta ($02),y
                 dey
                 bmi +
@@ -211,6 +210,134 @@ PaintProgressBar
                 bpl -
 +               rts
 
+times3          !byte 0,3,6,9,12,15,18,21,24,27,30,33,36,39
+NybbleToHex     !byte $b0,$b1,$b2,$b3,$b4,$b5,$b6,$b7,$b8,$b9,$81,$82,$83,$84,$85,$86
+WidthMinus3     !byte 0
+WidthMinus4     !byte 0
+HeightMinus2    !byte 0
+BytesPerLine    !byte 0
+PaintTextViewBox
+                jsr PaintListBox
+                jsr PaintScrollbar
+                ; Find control pos in buffers and adjust
+                jsr GetCtrlBufPos
+                jsr AddBufWidthToFD
+                lda #1
+                jsr AddToFD
+                ; Get ptr to string list in FBFC
+                lda ControlParent+CTRLSTRUCT_TOPLO
+                sta $fb
+                lda ControlParent+CTRLSTRUCT_TOPHI
+                sta $fc
+                ;
+                lda ControlBits
+                and #BIT_CTRL_UPPERCASE
+                beq +
+                lda #<PetUCtoDesktop
+                sta SMC_Convert+1
+                lda #>PetUCtoDesktop
+                sta SMC_Convert+2
+                jmp ++
++               lda #<PetLCtoDesktop
+                sta SMC_Convert+1
+                lda #>PetLCtoDesktop
+                sta SMC_Convert+2
+                ;
+++              lda ControlWidth
+                sec
+                sbc #3
+                sta WidthMinus3
+                sta WidthMinus4
+                dec WidthMinus4
+                lda ControlHeight
+                sec
+                sbc #2
+                sta HeightMinus2
+                ;
+                lda ControlParent+CTRLSTRUCT_ISTEXT
+                beq ++++
+                ; Text representation
+                ; 
+                lda WidthMinus3
+                sta BytesPerLine
+                ldx #0
+--              ldy #0
+-               lda ($fb),y
+                cmp #13
+                bne SMC_Convert
+                iny
+                jmp +++
+SMC_Convert     jsr $FFFF
+                sta ($fd),y
+                iny
+                cpy WidthMinus3
+                bcc -
+                ; Return would be at start of next line
+                lda ($fb),y
+                cmp #13
+                bne +++
+                iny
++++             tya
+                jsr AddToFB
+                jsr AddBufWidthToFD
+                inx
+                cpx HeightMinus2
+                bcc --
+                rts
+++++            ; Hex representation
+                ;
+                ldx #0
+--              ldy #0
+-               ; Check if EOF is reached
+                stx dummy
+                ldx $fc
+                tya
+                clc
+                adc $fb
+                bcc +
+                inx
++               cmp ViewerEOF
+                txa
+                sbc ViewerEOF+1
+                bcc +
+                rts
++               ldx dummy
+                ; Paint one byte
+                lda ($fb),y
+                pha
+                lsr
+                lsr
+                lsr
+                lsr
+                stx dummy+1
+                tax
+                lda times3,y
+                sty dummy
+                tay
+                lda NybbleToHex,x
+                sta ($fd),y
+                pla
+                and #%00001111
+                tax
+                lda NybbleToHex,x
+                ldx dummy+1
+                iny
+                sta ($fd),y
+                ;
+                ldy dummy
+                iny
+                lda times3,y
+                cmp WidthMinus4
+                bcc -
+                sty BytesPerLine
+                tya
+                jsr AddToFB
+                jsr AddBufWidthToFD
+                inx
+                cpx HeightMinus2
+                bcc --
+                rts
+
 PaintListBox    lda ControlColor
                 sta BoxColor
                 lda ControlPosX
@@ -226,8 +353,7 @@ PaintListBox    lda ControlColor
                 sta BoxWidth
                 lda ControlHeight
                 sta BoxHeight
-                jsr PaintBoxToBuf
-                rts
+                jmp PaintBoxToBuf
 
 scroll_caret_pos    !byte 0
 scroll_caret_max    !byte 0
@@ -280,7 +406,6 @@ PaintScrollbar  lda ControlHeight
                 jsr GetCtrlBufPos
                 ; Paint symbols
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 ldy ControlWidth
                 dey
                 lda #5
@@ -290,7 +415,6 @@ PaintScrollbar  lda ControlHeight
                 dex
                 dex
 -               jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 dex
                 bne -
                 lda #6
@@ -299,7 +423,6 @@ PaintScrollbar  lda ControlHeight
                 and #BIT_WND_RESIZABLE
                 beq +
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 lda #43
                 sta ($fd),y
 +               ; Fill with window color
@@ -310,7 +433,6 @@ PaintScrollbar  lda ControlHeight
 -               lda CSTM_WindowClr
                 sta ($02),y
                 jsr AddBufWidthTo02
-                ;+AddByteTo02 BufWidth
                 dex
                 bpl -
                 ; Paint scroll caret in scrollbar
@@ -354,7 +476,6 @@ PaintScrollbar  lda ControlHeight
                 inx
                 inx
 -               jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 dex
                 bne -
                 ldy ControlWidth
@@ -363,7 +484,6 @@ PaintScrollbar  lda ControlHeight
 -               lda #28
                 sta ($fd),y
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 dex
                 bne -
                 rts
@@ -460,8 +580,7 @@ PaintFileListScrollBox
 -               sta ($02),y
                 dey
                 bne -
-+               jsr PaintScrollbar
-                rts
++               jmp PaintScrollbar
 
 PaintLabel      ; Find control pos in buffers
                 jsr GetCtrlBufPos
@@ -472,10 +591,8 @@ paint_label     lda ControlStrings
                 lda ControlBits
                 and #BIT_CTRL_UPPERCASE
                 beq +
-                jsr PrintStringUC
-                rts
-+               jsr PrintStringLC
-                rts
+                jmp PrintStringUC
++               jmp PrintStringLC
 
 PaintColBoxLabel
                 jsr GetCtrlBufPos
@@ -505,8 +622,7 @@ PaintLabel_ML   ; Find control pos in buffers
                 sta $fb
                 lda ControlStrings+1
                 sta $fc
-                jsr PrintStringLC_ML
-                rts
+                jmp PrintStringLC_ML
 
 PaintEditSL     ; Find control pos in buffers
                 jsr GetCtrlBufPos
@@ -593,44 +709,41 @@ PaintEditSL     ; Find control pos in buffers
 
 PaintUpDown     jsr GetCtrlBufPos
                 ; First row
-                ldy #3
--               lda ($fd),y
-                cmp #4;#58
+                lda ControlBitsEx
+                and #BIT_EX_CTRL_NOFRAME_TOP
+                bne ++
+                ldx #39
+                lda ControlBits
+                and #BIT_CTRL_DBLFRAME_TOP
                 beq +
-                cmp #39
-                beq ++
-                lda #33
-                sta ($fd),y
-                jmp ++
-+               lda #39
-                sta ($fd),y
-++              dey
+                ldx #11
++               ldy #3
+                txa
+-               sta ($fd),y
+                dey
                 bne -
                 ; Middle row
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
                 jsr AddBufWidthTo02
-                ;+AddByteTo02 BufWidth
-                ldy #0
-                lda ($fd),y
-                cmp #4;#58
-                bne +
-                lda #41
-                sta ($fd),y
-                jmp ++
-+               lda #34
-                sta ($fd),y
-++              ldy #4
-                lda ($fd),y
-                cmp #4;#58
-                bne +
-                lda #37
-                sta ($fd),y
-                jmp ++
-+               lda #34
-                sta ($fd),y
 ++              ldy #3
                 lda #15
+                sta ($fd),y
+                ldx #37
+                lda ControlBits
+                and #BIT_CTRL_DBLFRAME_RGT
+                beq +
+                ldx #34
++               ldy #4
+                txa
+                sta ($fd),y
+                ;
+                ldx #41
+                lda ControlBits
+                and #BIT_CTRL_DBLFRAME_LFT
+                beq +
+                ldx #34
++               ldy #0
+                txa
                 sta ($fd),y
                 ; Put in value
                 ldy #1
@@ -650,22 +763,94 @@ PaintUpDown     jsr GetCtrlBufPos
                 dey
                 bne -
                 ; Third row
+                lda ControlBitsEx
+                and #BIT_EX_CTRL_NOFRAME_BTM
+                bne ++
                 jsr AddBufWidthToFD
-                ;+AddByteToFD BufWidth
-                ldy #3
--               lda ($fd),y
-                cmp #4;#58
+                ldx #36
+                lda ControlBits
+                and #BIT_CTRL_DBLFRAME_BTM
                 beq +
-                cmp #36
-                beq ++
-                lda #33
-                sta ($fd),y
-                jmp ++
-+               lda #36
-                sta ($fd),y
-++              dey
+                ldx #11
++               ldy #3
+                txa
+-               sta ($fd),y
+                dey
                 bne -
-                rts
+++              rts
+                
+;                jsr GetCtrlBufPos
+;                ; First row
+;                ldy #3
+;-               lda ($fd),y
+;                cmp #4
+;                beq +
+;                cmp #39
+;                beq ++
+;                lda #33
+;                sta ($fd),y
+;                jmp ++
+;+               lda #39
+;                sta ($fd),y
+;++              dey
+;                bne -
+;                ; Middle row
+;                jsr AddBufWidthToFD
+;                jsr AddBufWidthTo02
+;                ldy #0
+;                lda ($fd),y
+;                cmp #4
+;                bne +
+;                lda #41
+;                sta ($fd),y
+;                jmp ++
+;+               lda #34
+;                sta ($fd),y
+;++              ldy #4
+;                lda ($fd),y
+;                cmp #4
+;                bne +
+;                lda #37
+;                sta ($fd),y
+;                jmp ++
+;+               lda #34
+;                sta ($fd),y
+;++              ldy #3
+;                lda #15
+;                sta ($fd),y
+;                ; Put in value
+;                ldy #1
+;                lda ControlParent+CTRLSTRUCT_DIGIT_HI
+;                clc
+;                adc #$b0
+;                sta ($fd),y
+;                iny
+;                lda ControlParent+CTRLSTRUCT_DIGIT_LO
+;                clc
+;                adc #$b0
+;                sta ($fd),y
+;                ; Set color
+;                ldy #3
+;                lda ControlColor
+;-               sta ($02),y
+;                dey
+;                bne -
+;                ; Third row
+;                jsr AddBufWidthToFD
+;                ldy #3
+;-               lda ($fd),y
+;                cmp #4;#58
+;                beq +
+;                cmp #36
+;                beq ++
+;                lda #33
+;                sta ($fd),y
+;                jmp ++
+;+               lda #36
+;                sta ($fd),y
+;++              dey
+;                bne -
+;                rts
 
 PaintRadioButtonGroup
                 jsr GetCtrlBufPos
@@ -804,9 +989,9 @@ PaintButton     ; Button has a control height of 3
                 adc #0
                 sta $0d
                 ; Prepare copy char
-                lda #<Chars
+                lda #<CHARBASE
                 sta smc1+1
-                lda #>Chars
+                lda #>CHARBASE
                 sta smc2+1
                 lda #<DT_Reserved
                 sta smc3+1
