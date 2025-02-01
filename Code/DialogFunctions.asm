@@ -465,9 +465,9 @@ ShowFormatDlg   jsr GetCurDeviceNo
 -               sta Str_FilenameEdit,x
                 dex
                 bpl -
-                lda #<NotAllowed
+                lda #<Forbidden
                 sta ControlParent+CTRLSTRUCT_FORBIDDEN
-                lda #>NotAllowed
+                lda #>Forbidden
                 sta ControlParent+CTRLSTRUCT_FORBIDDEN+1
                 +ControlSetString <Str_FilenameEdit, >Str_FilenameEdit, 0
                 +EditSetCarretInfo 0, 16
@@ -490,18 +490,18 @@ ShowFormatDlg   jsr GetCurDeviceNo
 ShowRenameDlg   pha
                 jsr DeactivateWnd
                 jsr GetCurDeviceNo
-                ;
+                ; Create the dialog
                 lda #<Wnd_Dlg_Rename
                 sta $fb
                 lda #>Wnd_Dlg_Rename
                 sta $fc
                 jsr CreateWindow
-                ;
+                ; Put filename/diskname into label
                 +SelectControl 1
                 lda #BIT_CTRL_UPPERCASE
                 sta ControlBits
                 +ControlSetString <Str_FileName, >Str_FileName, 0
-                ;
+                ; Prepare edit_sl control
                 +SelectControl 3
                 lda #BIT_CTRL_UPPERCASE
                 sta ControlBits
@@ -510,6 +510,10 @@ ShowRenameDlg   pha
 -               sta Str_FilenameEdit,x
                 dex
                 bpl -
+                lda #<Forbidden
+                sta ControlParent+CTRLSTRUCT_FORBIDDEN
+                lda #>Forbidden
+                sta ControlParent+CTRLSTRUCT_FORBIDDEN+1
                 +ControlSetString <Str_FilenameEdit, >Str_FilenameEdit, 0
                 +EditSetCarretInfo 0, 16
                 ;

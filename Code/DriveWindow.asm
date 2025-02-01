@@ -337,7 +337,7 @@ ActionPasteFile lda CanCopy
                 +ShowMessage <Str_Mess_NoSameDisk, >Str_Mess_NoSameDisk
                 rts
 +               ; Check if there is enough space on disk
-                ldx DiskToCopyFrom+1
+                ldx DiskToCopyTo+1
                 lda BlocksFreeHexHi,x
                 cmp FileSizeHex+1
                 bcc ThrowSpaceError

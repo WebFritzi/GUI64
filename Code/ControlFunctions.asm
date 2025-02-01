@@ -136,6 +136,7 @@ ActionInEdit_SL lda wndParam
                 jmp PaintMe
 +               cmp #EC_KEYPRESS
                 bne ++
+                ; Key pressed in single-line Edit
                 lda WindowFocCtrl
                 cmp ControlIndex
                 bne ++
