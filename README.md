@@ -8,7 +8,7 @@ Mouse in Port #1<br>
 Joystick in Port #2
 
 # WIP Version
-Please find the latest WIP version of GUI64 in the branch "Developer". Please be aware that this version might contain bugs, might not run smoothly, and exhibits unfinished features.
+You find the latest WIP version of GUI64 in the branch "Developer". Please be aware that this version might contain bugs, might not run smoothly, and exhibits unfinished features.
 
 # Binaries
 There are currently two options: you either download GUI64.D64 and load GUI64 from disk with LOAD"*",8,1 or you use GUI64.PRG. The latter works great with a Kung Fu Flash cartridge.
