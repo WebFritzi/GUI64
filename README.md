@@ -40,7 +40,7 @@ $9000 - $a000 : string list for drive 9
 * A file viewer which lets you look into files either in text mode or in hex mode.
 * Support of device numbers other than #8 and #9.
 * SD2IEC support
-* A new menu item in the disk browser window
+* An options menu item in the disk browser window
 * Rearrangement of the memory map. For example, graphics data (char sets and sprites) are now copied to the RAM under the kernal when GUI64 starts. There will be a free area in RAM dedicated to applications.
 
 # Future Plans
