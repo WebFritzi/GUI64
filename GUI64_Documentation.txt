@@ -1,0 +1,166 @@
+**************************
+***     GUI64 v1.9     ***
+*** Documentation File ***
+**************************
+
+Developer: Friedrich Philipp (aka WebFritzi)
+
+
+Contents
+========
+1  Description
+2  Operation
+3  Look and Feel (Visual Design)
+   3.1 Changing default values (device numbers, colors, and desktop pattern)
+4  Elements on the Desktop and in the Taskbar
+   4.1  Drive Icons
+   4.2  Commodore Button
+   4.3  Time
+5  Graphical Elements on the Desktop
+   5.1  Windows
+   5.2  Controls
+6  Functionality
+   6.1  Running Programs
+   6.2  Opening Directories and Disk Images on SD2IEC Drives
+   6.3  Menus
+      6.3.1  The Disk Menu
+      6.3.2  The File Menu
+      6.3.3  The View Menu
+7  Applications
+8  Links
+
+
+1. Description
+==============
+GUI64 is a graphical user interface (GUI) for the C64, first released in November 2024. Although GUI64 may appear to be a standalone operating system, it is just a graphical layer running on top of the C64’s built-in ROM-based operating system, the KERNAL. GUI64 presents files and directories in freely movable windows, allowing for easy file management on floppy disks as well as on disk images stored on SD2IEC devices.
+
+
+2. Operation
+============
+GUI64 can be operated using a mouse (such as the 1351 or compatible models) connected to Control Port #1, or with a joystick in Control Port #2 (right click with CBM key + fire). To enable support for the mouse wheel — e.g., for scrolling or in up/down controls (see below) — the Micromys adapter must be used.
+
+
+3. Look and Feel (Visual Design)
+================================
+Visually, GUI64 is inspired by Windows 95-like interfaces. The GUI is window-based, with a taskbar at the bottom of the screen, featuring a "Commodore (CBM) button" embedded on the left and a recessed clock button on the right. The desktop itself is empty except for two drive icons in the upper-left corner, and — unlike other interfaces such as C64 OS or GEOS — does not support placing file icons directly on it. Instead, the desktop serves as a background for windows, which can be freely moved (dragged) and positioned. The custom colors and desktop pattern of GUI64 can be changed in the settings window (see 4.2).
+
+Unlike GEOS, for example, GUI64 does not use the VIC-II’s bitmap graphics mode, but operates in text mode. GUI64 is therefore character set–based. For instance, windows cannot be moved pixel-perfectly, but are instead aligned to the 8×8-pixel grid of the character display. The desktop consists of 22 rows and 40 columns of characters.
+
+3.1 Changing Default Colors and Desktop Pattern
+The default settings for the custom colors, the desktop pattern, and the device numbers are as follows:
+
+* Device Numbers: 8 and 9
+* Color "Active title bar" : orange (8 = $08)
+* Color "Inactive title bar" : mid gray (12 = $0C)
+* Color "Selection color": light green (13 = $0D)
+* Color "Menu selection color": mid gray (12 = $0C)
+* Color "Window color": light gray (15 = $0F)
+* Color "Desktop color": light blue (14 = $0E)
+* Desktop pattern: solid (0 = $00)
+
+To change these default values, open GUI64 in a Hex editor on your PC or Mac and look for the following sequence for colors and desktop pattern: "08 0C 0D 0C 0F 0E 00". Change the values as you like and save your GUI64 file for personal use. To change the default device numbers, look for the sequence "27 75 08 09" and change the last two numbers accordingly.
+
+
+
+4. Elements on the Desktop and in the Taskbar
+=============================================
+4.1. Drive Icons
+By default, the two drive icons are assigned to device numbers 8 and 9, but this can be changed via right-click on the icons. A double-click on a drive icon opens a file browser window, see below.
+
+4.2. Commodore Button
+Clicking the "Commodore button" opens a menu with two entries: "Settings" and "Reset." Selecting "Reset" returns the user to the familiar BASIC editor of the C64, while clicking "Settings" opens a configuration window where the visual appearance of GUI64 can be customized.
+
+4.3. Time
+Double-clicking the clock opens a dialog for setting the time. By default, the clock is set to "00:00" when GUI64 starts. In future versions of GUI64, it is planned to support reading the time from the "Ultimate 1541 II" cartridge or from compatible SD2IEC devices.
+
+
+5. Graphical Elements on the Desktop
+====================================
+5.1. Windows
+The primary graphical elements that convey information in GUI64 are windows. Each window has a title bar at the top, with the window title on the left and various control buttons on the right. One of these buttons is always an X-icon (X) to close the window. If the window supports minimizing or maximizing, corresponding buttons for those actions are also present. A minimized window disappears from the desktop but remains accessible as a button in the taskbar. Clicking this button restores the window to the desktop. This helps keep the desktop organized and clutter-free.
+
+A special type of window is the dialog. While minimizable windows appear in the taskbar, dialogs cannot be minimized and always retain full focus. This means that user input is restricted to within the dialog window only.
+
+5.2. Controls
+The graphical elements within windows are called controls. Each of these controls serves a specific function — even if that function is simply displaying text, as is the case with labels (see below). The controls of GUI64 are, in order:
+
+* Menu bar (always below title bar)
+* Button (clickable, with 3D-style effect)
+* Listbox (single-line selection list)
+* FileListScrollBox (scrollable file list with icons, names, and optional file size)
+* Label (single-line, non-editable text)
+* Multiline label (multi-line, non-editable text)
+* Frame (rectangular border for grouping elements)
+* Color Picker (displays menu of 16 colors to choose from)
+* Radio Button Group (mutually exclusive options, arranged in a list)
+* UpDown (displays numerical values, arrow buttons to change the value)
+* Singleline Edit (single-line input box for text entry)
+* Progress Bar (single-line box for displaying progress)
+* ColorBox Label (combination of a colored box and a label)
+* TextViewBox (box displaying non-editable text)
+
+
+6. Functionality
+================
+GUI64 allows users to work with drives and files. The following drives are detected and supported: Commodore 1541 floppy drive, Commodore 1571 floppy drive, Commodore 1581 floppy drive, and SD2IEC devices. GUI64 may also work with hard drives and other storage devices; however, due to a lack of testing, reliable functionality for these cannot be guaranteed at this time.
+
+Double-clicking one of the drive icons on the desktop opens a file browser window, which — after loading—displays the contents of the medium (floppy disk, SD2IEC directory, or disk image within an SD2IEC directory). GUI64 can also handle dnp images. Files and directories are listed vertically within the window. Each entry shows the file type (as an icon), the file name, and, optionally, the file size (see the "View Menu" below). Entries can be selected by clicking on them. The list can be scrolled by either using the scrollbar on the right edge or the mouse wheel.
+
+6.1 Running Programs
+To run programs (equivalent to LOAD"...",x and RUN), a double-click on the corresponding entry in the drive window is required. This will display a progress bar in the taskbar, showing the loading progress. Once the file is loaded into the C64's memory, the file will be executed. To load a pure machine code file, see "Boot" in the File menu. Note: GUI64 will not remain in the background after running a file and has to be loaded back into memory afterwards.
+
+6.2 Opening Directories and Disk Images on SD2IEC Drives
+When the file browser window displays the contents of a directory on an SD2IEC drive, directories and disk images (if available) will also be shown. Directories are represented by a folder-like icon. A double-click on a directory or disk image initiates a loading process, after which the contents of the selected directory or disk image will be displayed in the browser window.
+
+6.3 Menus
+Each file browser window in GUI64 has a menu consisting of the entries "Disk," "File," and "View." These menus provide the user with various options for manipulating drives, files, and directories.
+
+6.3.1 The Disk Menu
+The 'Disk' menu in GUI64 allows users to manipulate floppy disks (or disk images) and view information about the drive at the corresponding device number. It has the following entries:
+
+Refresh	   The contents of the disk are reloaded (e.g., after changing the floppy disk)
+Device No  Opens a dialog for changing the device number
+Info	   Opens a dialog to display information about the disk and the drive
+Format	   Opens a dialog to format the disk
+Rename	   Opens a dialog to rename the disk (currently only for 1541 drives)
+Close	   Closes the window
+
+
+6.3.2 The File Menu
+The 'File' menu of GUI64 allows for copying or 'cutting' files, as well as deleting, renaming, viewing, booting files, and creating disk images. It has the following entries:
+
+New	Opens a dialog to create new disk images (d64, d71, d81) or folders on an SD2IEC drive.*
+Cut	GUI64 remembers the selected file for 'cutting'
+Copy	GUI64 remembers the selected file for copying
+Paste	Pastes the copied or 'cut' file onto the floppy disk, disk image, or into the directory
+Delete	Opens a dialog to confirm the deletion of the selected file
+Rename	Opens a dialog to rename the selected file
+View	Opens a window to view the contents of the selected file in text or hex mode
+	(currently only rudimentary implementation)
+Boot	Loads the selected file to the memory address specified in the first two bytes of the file and
+	instructs the processor to start the code from there (equivalent to LOAD"...",x,1: SYS xxxxx
+
+* Note: After creating a new image, the corresponding virtual disk needs to be formatted. For this, double click the image, click Format in the Disk menu and choose Full Format.
+
+
+6.3.3 The View Menu
+With the entries in the 'View' menu, the display in the file browser window can be changed:
+
+File Sizes	Displays file sizes in the file browser window (or not)
+Lower Case	Switches to uppercase and lowercase display (or not)
+Sort by Name	Sorts the directory and folder list by name
+Sort by Type	Sorts the directory and folder list by file type
+Sort by Size	Sorts the directory and folder list by file size
+GUI64 Info	Opens an 'About' dialog with information about GUI64
+
+
+7. Applications
+===============
+Currently, there are no applications for GUI64. However, after the release of version 2.0, an interface for developers is planned, which will allow for the easy creation of applications for GUI64.
+
+
+8. Links
+========
+* Github webpage of GUI64: https://github.com/WebFritzi/GUI64
+* Playlist about the development progress of GUI64 (YouTube):
+  https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2&pp=gAQB
