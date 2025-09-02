@@ -46,7 +46,7 @@ Visually, GUI64 is inspired by Windows 95-like interfaces. The GUI is window-bas
 
 Unlike GEOS, for example, GUI64 does not use the VIC-II’s bitmap graphics mode, but operates in text mode. GUI64 is therefore character set–based. For instance, windows cannot be moved pixel-perfectly, but are instead aligned to the 8×8-pixel grid of the character display. The desktop consists of 22 rows and 40 columns of characters.
 
-3.1 Changing Default Colors and Desktop Pattern
+3.1 Changing default values (device numbers, colors, and desktop pattern)
 The default settings for the custom colors, the desktop pattern, and the device numbers are as follows:
 
 * Device Numbers: 8 and 9
@@ -164,3 +164,4 @@ Currently, there are no applications for GUI64. However, after the release of ve
 * Playlist about the development progress of GUI64 (YouTube):
 
   https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2&pp=gAQB
+
