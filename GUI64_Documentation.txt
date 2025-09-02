@@ -61,7 +61,6 @@ The default settings for the custom colors, the desktop pattern, and the device 
 To change these default values, open GUI64 in a Hex editor on your PC or Mac and look for the following sequence for colors and desktop pattern: "08 0C 0D 0C 0F 0E 00". Change the values as you like and save your GUI64 file for personal use. To change the default device numbers, look for the sequence "27 75 08 09" and change the last two numbers accordingly.
 
 
-
 4. Elements on the Desktop and in the Taskbar
 =============================================
 4.1. Drive Icons
@@ -163,4 +162,5 @@ Currently, there are no applications for GUI64. However, after the release of ve
 ========
 * Github webpage of GUI64: https://github.com/WebFritzi/GUI64
 * Playlist about the development progress of GUI64 (YouTube):
+
   https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2&pp=gAQB
