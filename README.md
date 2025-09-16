@@ -47,3 +47,6 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 # Future Plans
 * Retrieve time from Ultimate 64 and SD2IECs with RealTimeClock
 * Application programming interface: program your app for GUI64
+
+# Thank You
+A huge THANK YOU to all the users on http://www.Forum64.de who have greatly supported me in bringing this project to life. I'm truly grateful for their help.
