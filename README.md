@@ -17,9 +17,9 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 
 **Memory map of GUI64 v1.9**
 
-| Range of memory        | Contents                               |
-| :---------------------- | :-------------------------------------- |
-| ``$033c - $6500``      | Program code                           |
+| Range of memory        | Contents                               |      | Range of memory        | Contents                               |
+| :---------------------- | :-------------------------------------- |    | :---------------------- | :-------------------------------------- |
+| ``$033c - $6500``      | Program code                           |      | ``$033c - $6500``      | Program code                           |
 | ``$6500 - $6600``      | Path for drive A                       |
 | ``$6600 - $6700``      | Path for drive B                       |
 | ``$6700 - $6800``      | FREEMEM, used, e.g., for copying files |
