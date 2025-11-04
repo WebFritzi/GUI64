@@ -1,7 +1,14 @@
 ![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64.png)
 
 # GUI64 v1.9
-GUI64 is a graphical user interface for the Commodore 64 that allows you to run programs and games, as well as to manage files by cutting, copying, pasting, deleting, and renaming them. It moreover enables you to format and rename disks, browse your folders on your SD2IEC device, and create new disk images and folders. It comes in two designs: one is Windows-like, the other Mac-like. For detailed information on GUI64, check out the C64-Wiki page https://www.c64-wiki.com/wiki/GUI64.
+GUI64 is a graphical user interface (GUI) for the Commodore 64. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
+* run programs and games
+* manage files by cutting, copying, pasting, deleting, and renaming them
+* format and rename disks
+* browse your folders on your SD2IEC device
+* create new disk images and folders
+
+For detailed information on GUI64, check out the C64-Wiki page https://www.c64-wiki.com/wiki/GUI64.
 
 **Control:**<br>
 Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
