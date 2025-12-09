@@ -3,7 +3,7 @@
 *** Documentation File ***
 **************************
 
-Developer: Friedrich Philipp (aka WebFritzi)
+Developer: Friedrich M. Philipp (aka WebFritzi)
 
 
 Contents
@@ -183,5 +183,6 @@ Currently, there are no applications for GUI64. However, after the release of ve
 ========
 * Github webpage of GUI64: https://github.com/WebFritzi/GUI64
 * Playlist about the development progress of GUI64 (YouTube): https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2&pp=gAQB
+
 
 
