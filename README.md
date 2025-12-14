@@ -21,7 +21,7 @@ There are currently three options: the first is gui64.crt. This is a cartridge i
 # Code
 GUI64 was developed in 6502 assembly code (ACME syntax) with _C64 Studio_ which you can download here:<br>
 <p align="center">https://www.georg-rottensteiner.de/files/C64StudioRelease.zip</p>
-To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", choose GUI64.c64, and in the next file browser click on "Cancel". The main file is GUI64.asm.<br><br>
+To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.<br><br>
 
 **Memory map of GUI64 v1.9**
 
