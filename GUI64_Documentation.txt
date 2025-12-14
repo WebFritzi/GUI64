@@ -82,7 +82,7 @@ To change the default device numbers, look for the sequence "27 75 08 09" and ch
 4. Elements on the Desktop and in the Taskbar
 =============================================
 4.1. Drive Icons
-By default, the two drive icons are assigned to device numbers 8 and 9, but this can be changed via right-click on the icons. A double-click on a drive icon opens a file browser window, see below.
+By default, the two drive icons are assigned to device numbers 8 and 9, but this can be changed via right-click on the icons (Commodore key + Fire for joystick control). A double-click on a drive icon opens a file browser window, see below.
 
 4.2. Commodore Button (Windows-like version) / System menu (Mac-like version)
 Clicking the "Commodore button" (lower left) or the "System menu" (upper left) opens a menu with three entries: "Settings", "About" and "BASIC." Selecting "BASIC" returns the user to the familiar BASIC editor of the C64, while clicking "Settings" opens a configuration window where the visual appearance of GUI64 can be customized. The entry "About" shows a small dialog box with information on GUI64.
@@ -183,6 +183,7 @@ Currently, there are no applications for GUI64. However, after the release of ve
 ========
 * Github webpage of GUI64: https://github.com/WebFritzi/GUI64
 * Playlist about the development progress of GUI64 (YouTube): https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2&pp=gAQB
+
 
 
 
