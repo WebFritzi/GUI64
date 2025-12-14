@@ -1,12 +1,13 @@
 ![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64.png)
 
-# GUI64 v1.9
+# GUI64 v1.95
 GUI64 is a graphical user interface (GUI) for the Commodore 64. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
 * run programs and games
 * manage files by cutting, copying, pasting, deleting, and renaming them
 * format and rename disks
 * browse your folders on your SD2IEC device
 * create new disk images and folders
+* view files as text and hex
 
 For detailed information on GUI64, check out the C64-Wiki page https://www.c64-wiki.com/wiki/GUI64.
 
@@ -47,11 +48,10 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 
 
 # Coming in Version 2.0 (Work in Progress)
-* File browser: Full implementation of file viewer (menu entry "View" in "File" menu) for examining files in text and hex mode
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
 
 # Future Plans
-* Retrieve time from Ultimate 64 and SD2IECs with RealTimeClock
+* Retrieve time from Ultimate 64 and/or SD2IECs with RealTimeClock
 * Application programming interface: program your app for GUI64
 
 # Thank You
