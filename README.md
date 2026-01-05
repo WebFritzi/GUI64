@@ -51,7 +51,7 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
 
 # Future Plans
-* Retrieve time from Ultimate 64 and/or SD2IECs with RealTimeClock
+* Retrieve time from Commodore 64 Ultimate board and/or SD2IECs with RealTimeClock
 * Application programming interface: program your app for GUI64
 
 # Thank You
