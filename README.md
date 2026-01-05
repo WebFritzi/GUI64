@@ -7,7 +7,7 @@ GUI64 is a graphical user interface (GUI) for the Commodore 64. It comes in two 
 * format and rename disks
 * browse your folders on your SD2IEC device
 * create new disk images and folders
-* view files as text and hex
+* view files in text and hex mode
 
 For detailed information on GUI64, check out the C64-Wiki page https://www.c64-wiki.com/wiki/GUI64.
 
