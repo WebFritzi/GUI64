@@ -493,7 +493,8 @@ ActionViewFile  jsr GetCurDeviceNo
                 lda error_code
                 beq +
                 jmp ShowDiskError
-+               jsr RepaintAll
++               jsr PaintTaskbar
+                jsr RepaintAll
 ++              rts
 
 ;                ; Read file from disk into buffer
@@ -867,4 +868,5 @@ SortBySize      jsr StartSortFiles
                 inx
                 cpx length_minus_1
                 bcc --
+
                 rts
