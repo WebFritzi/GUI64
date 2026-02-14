@@ -1,6 +1,6 @@
 ![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64.png)
 
-# GUI64 v1.95
+# GUI64 v1.96
 GUI64 is a graphical user interface (GUI) for the Commodore 64. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
 * run programs and games with a simple double click
 * manage files by cutting, copying, pasting, deleting, and renaming them
@@ -23,7 +23,7 @@ GUI64 was developed in 6502 assembly code (ACME syntax) with _C64 Studio_ which 
 <p align="center">https://www.georg-rottensteiner.de/files/C64StudioRelease.zip</p>
 To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.<br><br>
 
-**Memory map of GUI64 v1.9**
+**Memory map of GUI64 v1.96**
 
 | Range of memory        | Contents                               |
 | :---------------------- | :-------------------------------------- |
@@ -51,7 +51,6 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
 
 # Future Plans
-* Retrieve time from Commodore 64 Ultimate board and/or SD2IECs with RealTimeClock
 * Application programming interface: program your app for GUI64
 
 # Thank You
