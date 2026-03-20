@@ -48,6 +48,10 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 
 
 # Coming in Version 2.0 (Work in Progress)
+* Drag drive icons on the desktop to your desired position
+* Ultimate functionality:
+  - Show Ultimate content in a browser window (USB stick, SD card) and run your games from within GUI64
+  - Automatic saving of settings (colors, desktop pattern, and drive icon locations) in the Ultimate's flash folder
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
 
 # Future Plans
