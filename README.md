@@ -27,8 +27,7 @@ GUI64 was developed in 6502 assembly code (close to ACME syntax) with _C64 Studi
 To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.<br><br>
 
 # Coming in Version 2.0 (Work in Progress)
-* Ultimate functionality:
-  - Browse Ultimate content (USB stick, SD card) in a window and run your games from within GUI64
+* Ultimate users: Browse Ultimate content (USB stick, SD card) in a window and run your games from within GUI64
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
 
 # Future Plans
