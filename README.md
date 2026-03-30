@@ -16,7 +16,7 @@ Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
 Joystick in Port #2 (right click with Commodore key + fire)
 
 # Ultimate Users
-From version 1.97, Ultimate users (1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate) enjoy automatic saving of settings (colors, desktop pattern, icon positions) in the Ultimate's Flash folder and a correct time display. For this, they have to enable the "Command Interface" in the Ultimate settings.
+From version 1.97, Ultimate users (1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate) benefit from automatic saving of their settings (colors, desktop pattern, icon positions) in the Ultimate's Flash folder, along with an accurate time display.
 
 # Binaries
 There are currently two options: the first is gui64.crt (recommended). This is a cartridge image with which you can enjoy GUI64 right after switching on your computer. The second option is gui64.d64. Put in the disk and load GUI64 with 'LOAD"*",8,1'.
