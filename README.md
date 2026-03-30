@@ -23,36 +23,12 @@ GUI64 was developed in 6502 assembly code (ACME syntax) with _C64 Studio_ which 
 <p align="center">https://www.georg-rottensteiner.de/files/C64StudioRelease.zip</p>
 To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.<br><br>
 
-**Memory map of GUI64 v1.96**
-
-| Range of memory        | Contents                               |
-| :---------------------- | :-------------------------------------- |
-| ``$033c - $6500``      | Program code                           |
-| ``$6500 - $6600``      | Path for drive A                       |
-| ``$6600 - $6700``      | Path for drive B                       |
-| ``$6700 - $6800``      | FREEMEM, used, e.g., for copying files |
-| ``$6800 - $9800``      | 12 KB free for one single GUI64 app    |
-| ``$9800 - $9900``      | 16 window structs                      |
-| ``$9900 - $a000``      | 112 control structs                    |
-| ``$a000 - $a400``      | Buffer for screen data                 |
-| ``$a400 - $a800``      | Buffer for color data                  |
-| ``$a800 - $bc00``      | String list for drive A (255 entries)  |
-| ``$bc00 - $d000``      | String list for drive B (255 entries)  |
-| **Graphics data in I/O area**                                   |
-| ``$d000 - $d800``      | Char set (desktop)                     |
-| ``$d800 - $e000``      | Sprites                                |
-| ``$e000 - $e400``      | Win: Char set (taskbar), Mac: Screen memory |
-| ``$e400 - $e800``      | Win: Screen memory, Mac: File viewer buffer |
-| ``$e800 - $ff00``      | File viewer buffer                     |
-| ``$ff00 - $ffff``      | Jump tables                            |
-
+# Ultimate Users
+From version 1.97, Ultimate users (1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate) enjoy automatic saving of settings (colors, desktop pattern, icon positions) in the Ultimate's Flash folder and a correct time display. For this, they have to enable the "Command Interface" in the Ultimate settings.
 
 # Coming in Version 2.0 (Work in Progress)
-* Drag drive icons on the desktop to your desired position
 * Ultimate functionality:
-  - Show Ultimate content in a browser window (USB stick, SD card) and run your games from within GUI64
-  - Automatic saving of settings (colors, desktop pattern, and drive icon locations) in the Ultimate's flash folder
-  - GUI64 shows the right time of day by fetching it from the Ultimate
+  - Browse Ultimate content (USB stick, SD card) in a window and run your games from within GUI64
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
 
 # Future Plans
