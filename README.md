@@ -15,6 +15,9 @@ For detailed information on GUI64, check out the C64-Wiki page https://www.c64-w
 Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
 Joystick in Port #2 (right click with Commodore key + fire)
 
+# Ultimate Users
+From version 1.97, Ultimate users (1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate) enjoy automatic saving of settings (colors, desktop pattern, icon positions) in the Ultimate's Flash folder and a correct time display. For this, they have to enable the "Command Interface" in the Ultimate settings.
+
 # Binaries
 There are currently two options: the first is gui64.crt (recommended). This is a cartridge image with which you can enjoy GUI64 right after switching on your computer. The second option is gui64.d64. Put in the disk and load GUI64 with 'LOAD"*",8,1'.
 
@@ -22,9 +25,6 @@ There are currently two options: the first is gui64.crt (recommended). This is a
 GUI64 was developed in 6502 assembly code (ACME syntax) with _C64 Studio_ which you can download here:<br>
 <p align="center">https://www.georg-rottensteiner.de/files/C64StudioRelease.zip</p>
 To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.<br><br>
-
-# Ultimate Users
-From version 1.97, Ultimate users (1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate) enjoy automatic saving of settings (colors, desktop pattern, icon positions) in the Ultimate's Flash folder and a correct time display. For this, they have to enable the "Command Interface" in the Ultimate settings.
 
 # Coming in Version 2.0 (Work in Progress)
 * Ultimate functionality:
