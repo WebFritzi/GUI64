@@ -38,7 +38,7 @@ A huge THANK YOU to all the users on http://www.Forum64.de who have supported me
 
 # Update Log (since v1.97)
 ### Version 1.97
-* Improved joystick performance
+* Improved joystick performance: joystick acceleration
 * Ultimate: clock has access
 * Ultimate: settings are saved in Flash folder
 * Draggable icons
