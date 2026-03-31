@@ -35,3 +35,11 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 
 # Thank You
 A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help.
+
+# Update Log (since v1.97)
+# Version 1.97
+* Improved joystick performance
+* Ultimate: clock has access
+* Ultimate: settings are saved in Flash folder
+* Draggable icons
+* Intern: joint 2 projects for Win and Mac version to one project
