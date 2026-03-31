@@ -2,7 +2,7 @@
 
 # GUI64 v1.97
 GUI64 is a graphical user interface (GUI) for the Commodore 64. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
-* run programs and games with a simple double click
+* run programs and games with a simple double click and see the loading progress
 * manage files by cutting, copying, pasting, deleting, and renaming them
 * format and rename disks
 * view files in text and hex mode
