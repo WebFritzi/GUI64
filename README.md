@@ -31,7 +31,7 @@ To build GUI64, download the files in the "Code" folder and open C64 Studio. In 
 * Application programming interface: program your app for GUI64
 
 ## Thank You
-A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help.
+A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support in implementing the SoftIEC commands for the Ultimate machines.
 
 ## Update Log (since v1.97)
 ### Version 1.97
