@@ -16,7 +16,7 @@ Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
 Joystick in Port #2 (right click with Commodore key + fire)
 
 ## Ultimate Users
-Ultimate users [1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate] can browse content on SD-card or USB devices attached to their Ultimates and mount images right in GUI64. Moreover, they benefit from automatic saving of their settings (colors, desktop pattern, icon positions, device numbers) in the Ultimate's Flash folder, along with an accurate time display.
+Ultimate users [1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate, all with the [b]Ultimate's Command Interface enabled[/b]] can browse content on SD-card or USB devices attached to their Ultimates and mount images right in GUI64. Moreover, they benefit from automatic saving of their settings (colors, desktop pattern, icon positions, device numbers) in the Ultimate's Flash folder, along with an accurate time display.
 
 ## Binaries
 There are currently two options: the first is gui64.crt (recommended). This is a cartridge image with which you can enjoy GUI64 right after switching on your computer. The second option is gui64.d64. Put in the disk and load GUI64 with 'LOAD"*",8,1'.
