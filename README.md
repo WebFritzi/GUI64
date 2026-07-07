@@ -25,9 +25,7 @@ Ultimate users [1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate, each
 There are currently two options: the first is a cartridge (crt) image which is recommended. This allows you to enjoy GUI64 right after switching on your computer. The second option is a disk (d64) image. Mount it and load GUI64 with 'LOAD"*",8,1'.
 
 ## Code
-GUI64 was developed in 6502 assembly code (close to ACME syntax) with [_C64 Studio_](https://www.georg-rottensteiner.de/files/C64StudioRelease.zip) which you can download here:<br>
-<p align="center">https://www.georg-rottensteiner.de/files/C64StudioRelease.zip</p>
-To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.
+GUI64 was developed in 6502 assembly code (close to ACME syntax) with [_C64 Studio_](https://www.georg-rottensteiner.de/files/C64StudioRelease.zip) (download link). To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.
 
 ## Work in Progress
 * File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
