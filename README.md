@@ -9,7 +9,7 @@ GUI64 is a graphical user interface (GUI) for the Commodore 64, ready to use imm
 * SD2IEC: all of the above + browse folders and create disk images and folders
 * Ultimate: browse Ultimate content and mount images
 
-For detailed information on GUI64, check out the C64-Wiki page https://www.c64-wiki.com/wiki/GUI64.
+For detailed information on GUI64, check out the C64-Wiki page https://www.c64-wiki.com/wiki/GUI64 or my [YouTube playlist](https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2) on the development process of GUI64..
 
 **Control:**<br>
 Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
