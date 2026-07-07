@@ -32,7 +32,7 @@ GUI64 was developed in 6502 assembly code (close to ACME syntax) with [_C64 Stud
 * Application programming interface: program your app for GUI64
 
 ## Thank You
-A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code for grabbing the time from the WIC64.
+A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
 
 ## Update Log (since v1.97)
 ### Version 2.0
