@@ -22,10 +22,10 @@ The current time is displayed either if the host is an Ultimate (with Command In
 Ultimate users [1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate, each with the **Ultimate's Command Interface enabled**] can browse content on SD-card or USB devices attached to their Ultimates and mount images right in GUI64. Moreover, they benefit from automatic saving of their settings (colors, desktop pattern, icon positions, device numbers) in the Ultimate's Flash folder, along with an accurate time display.
 
 ## Binaries
-There are currently two options: the first is gui64.crt (recommended). This is a cartridge image with which you can enjoy GUI64 right after switching on your computer. The second option is gui64.d64. Put in the disk and load GUI64 with 'LOAD"*",8,1'.
+There are currently two options: the first is a cartridge (crt) image which is recommended. This allows you to enjoy GUI64 right after switching on your computer. The second option is a disk (d64) image. Mount it and load GUI64 with 'LOAD"*",8,1'.
 
 ## Code
-GUI64 was developed in 6502 assembly code (close to ACME syntax) with _C64 Studio_ which you can download here:<br>
+GUI64 was developed in 6502 assembly code (close to ACME syntax) with [_C64 Studio_](https://www.georg-rottensteiner.de/files/C64StudioRelease.zip) which you can download here:<br>
 <p align="center">https://www.georg-rottensteiner.de/files/C64StudioRelease.zip</p>
 To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.
 
