@@ -1,4 +1,4 @@
-![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64.png)
+![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64ex.png)
 
 # GUI64 2.0
 GUI64 is a graphical user interface (GUI) for the Commodore 64, ready to use immediately after startup. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
