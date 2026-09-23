@@ -1,6 +1,6 @@
 ![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64ex.png)
 
-# GUI64 2.0
+# GUI64 2.1
 GUI64 is a graphical user interface (GUI) for the Commodore 64, ready to use immediately after startup. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
 * run programs and games with a simple double click and see the loading progress
 * manage files by cutting, copying, pasting, deleting, and renaming them
@@ -8,12 +8,16 @@ GUI64 is a graphical user interface (GUI) for the Commodore 64, ready to use imm
 * view files in text and hex mode
 * SD2IEC: all of the above + browse folders and create disk images and folders
 * Ultimate: browse Ultimate content and mount images
+* Load and execute one GUI64 app at a time
 
 For detailed information on GUI64, check out the [C64-Wiki page](https://www.c64-wiki.com/wiki/GUI64) or my [YouTube playlist](https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2) on the development process of GUI64.
 
 **Control:**<br>
 Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
 Joystick in Port #2 (right click with Commodore key + fire)
+
+## Apps
+Since GUI64 v2.1, it is possible for programmers to develop apps for GUI64. An app is a PRG binary named "*.gui". Programmers have to include the file gui64.inc.asm in their code. Demo apps are collected in the folder "Apps".
 
 ## Time
 The current time is displayed either if the host is an Ultimate (with Command Interface enabled) or if there is a working [WiC64](https://www.wic64.net/web/) attached to the user port. Otherwise, the clock is set to "00:00".
@@ -35,6 +39,10 @@ GUI64 was developed in 6502 assembly code (close to ACME syntax) with [_C64 Stud
 A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
 
 ## Update Log (since v1.97)
+### Version 2.0
+* Significant memory savings through code optimization
+* New memory map
+* Application Programming Interface added
 ### Version 2.0
 * WIC64: Grabs current time
 * Ultimate, SD2IEC, and disks: double click txt files to view them
