@@ -31,9 +31,10 @@ There are currently two options: the first is a cartridge (crt) image which is r
 ## Code
 GUI64 was developed in 6502 assembly code (close to ACME syntax) with [_C64 Studio_](https://www.georg-rottensteiner.de/files/C64StudioRelease.zip) (download link). To build GUI64, download the files in the "Code" folder and open C64 Studio. In C64 Studio, go to "File->Open->Solution or Project", and choose the *.s64 file. C64 Studio then opens the solution. The main file is GUI64.asm.
 
-## Work in Progress
-* File browser: Copy files between SD2IEC directories and images; maybe even copying files between disks in the same drive via disk swap will be possible as well
-* Application programming interface: program your app for GUI64
+## Possible features in future versions
+* Copy files between SD2IEC directories and images; maybe even copy files between disks in the same drive via disk swap will be possible as well
+* Scrolling by dragging
+* Selection of multiple files in file browser
 
 ## Thank You
 A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
