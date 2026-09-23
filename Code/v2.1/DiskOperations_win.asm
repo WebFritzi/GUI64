@@ -1,0 +1,1427 @@
+;channel         !byte 0 ZP
+;file_size       !byte 0,0; 4 digit hexadecimal number (ZP)
+;num_files       !byte 0 ZP
+real_num_files  !byte 0,0
+;oldy            !byte 0 ZP
+y_in_fd         !byte 0
+;file_size_dec   !byte 0,0,0; 6 digit decimal number (actually 5 digits only) (ZP)
+;str_file_size   !pet "1234"
+;disk_size       !byte 0,0 ZP
+free_blocks     !byte 0,0
+occupied        !byte 0,0
+
+ShowDiskErrorEx ; Write "DISK ERROR" into titlebar of drive wnd
+                ldx CurDeviceInd
+                lda Str_Title_DrvLo,x
+                sta $fb
+                lda Str_Title_DrvHi,x
+                sta $fc
+                ldy #15
+-               lda Str_Disk_Error,y
+                sta ($fb),y
+                dey
+                bpl -
+ShowDiskError   jsr PaintTaskbar
+                lda error_code
+                cmp #30
+                bcc basic_error
+                ; GUI64 errors 30/31
+                ; X=1 for error 30, X=2 for error 31
+                ;sec
+                sbc #29
+                tax
+                lda #<Str_Err_Custom
+                sta $fb
+                lda #>Str_Err_Custom
+                sta $fc
+                bne find_error       ; always taken
+basic_error     ; BASIC errors 1..29
+                tax
+                lda #<BASIC_ERR_START
+                sta $fb
+                lda #>BASIC_ERR_START
+                sta $fc
+find_error      ; BASIC ROM in
+                lda #55
+                sta $01
+                ; X=1 means: string at FBFC is already the wanted one
+                dex
+                beq copy_error
+next_error      ; Skip one bit-7 terminated string
+                ldy #0
+scan_error      lda ($fb),y
+                bmi end_error
+                iny
+                bne scan_error       ; error strings are <256 bytes
+end_error       iny                  ; include terminating character
+                tya
+                jsr AddToFB
+                dex
+                bne next_error
+copy_error      ; Copy string and convert bit-7 terminator to zero terminator
+                ldy #0
+-               lda ($fb),y
+                sta Str_Mess_Error,y
+                bmi error_end
+                iny
+                bne -
+error_end       and #%01111111
+                sta Str_Mess_Error,y
+                iny
+                lda #0
+                sta Str_Mess_Error,y
+                ; Preserve old representation:
+                ; first character of Str_Mess_Error has bit 7 set
+                lda Str_Mess_Error
+                ora #%10000000
+                sta Str_Mess_Error
+                ; BASIC ROM out again
+                lda #53
+                sta $01
+                ; Show disk error dialog
+                ldx #<Str_Mess_Error
+                ldy #>Str_Mess_Error
+                jmp ShowErrorMsg
+
+UninstallIRQ    jsr WaitRaster_100
+                jsr DeinstallIRQ
+                lda #0;#%00001100
+                sta VIC+21
+;                ; Wait for 1 screen frame
+;-               lda $d012
+;                cmp #199
+;                bne -
+                rts
+
+UninstallIRQ_FakeTB
+                jsr UninstallIRQ
+                jmp FakeTaskbar
+
+ShowDirectory   jsr LoadDirectory
+                ldx CurDeviceInd
+                lda error_code
+                sta DiskHasError,x
+                beq no_error
+                jmp ShowDiskErrorEx
+no_error        lda #0
+                sta ControlTopIndex
+                lda WindowType
+                cmp #WT_DRIVE_A
+                beq +
+                ldx #<STRING_LIST_DRIVEB
+                ldy #>STRING_LIST_DRIVEB
+                lda num_files
+                sta NumStrings+1
+                jmp ++
++               ldx #<STRING_LIST_DRIVEA
+                ldy #>STRING_LIST_DRIVEA
+                lda num_files
+                sta NumStrings+0
+++              jsr SetCtrlStringList
+                jsr SetDrvWndWidth
+                jsr RepaintAll
+                lda bTooManyFiles
+                beq +
+                ; Show message if there are more than 255 files in directory
+                lda CurDeviceInd
+                asl
+                asl
+                tax
+                inx
+                inx
+                inx
+                ldy #2
+-               lda Str_NumFiles,x
+                sta Str_TooManyFiles+28,y
+                dex
+                dey
+                bpl -
+                ldx #<Str_TooManyFiles
+                ldy #>Str_TooManyFiles
+                jmp ShowMessage
++               rts
+
+LoadDirectory   jsr SelectControl1
+                lda #0
+                sta ControlNumStr
+                lda #$ff
+                sta ControlHilIndex
+                jsr UpdateControl
+                jsr PaintCurWindow
+                ; Print "Loading..." into window title bar
+                lda #<Str_LoadingUC
+                sta $fb
+                lda #>Str_LoadingUC
+                sta $fc
+                jsr GetCurDeviceNo
+                jsr SetFDFEToTitle
+                ldy #10
+-               lda ($fb),y
+                sta ($fd),y
+                dey
+                bpl -
+                lda #1
+                jsr PaintTitleBar
+                jsr WindowToScreen
+                ;
+                jsr SetFDFEToTitle
+                ;
+load_dir        jsr UninstallIRQ_FakeTB
+                ldx CurDeviceInd
+                lda #0
+                sta $fb
+                lda StringListDrvHi,x
+                sta $fc
+                ; Collect disk/drive info
+                jsr DetectDriveType
+                jsr IsItADiskDrive
+                jsr IsWriteProtect
+                ; 
+                ldx #0
+                stx num_files
+                dex
+                stx max_entries; max_entries = 255
+                ldx CurDeviceInd
+                lda IsDiskDrive,x
+                bne +
+                ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                ; If non-disk: write ".." to FB and increase FB by FILE_RECORD_LENGTH
+                inc num_files
+                ldy #(FILE_RECORD_LENGTH-1)
+-               lda Str_DirUp,y
+                sta ($fb),y
+                dey
+                bpl -
+                lda #FILE_RECORD_LENGTH
+                jsr AddToFB
+                ; Go to SD2IEC root if necessary
+                ldx CurDeviceNo
+                lda bMayRoot-8,x
+                beq +
+                jsr GotoRootFullExt
+                lda error_code
+                bne ++
+                ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++               ; Load the directory
+                jsr LoadDir
+                lda error_code
+                beq +
+                ; An error occured
+++              jmp InstallIRQ; also paints taskbar
+                ;
++               ldx CurDeviceInd
+                lda IsDiskDrive,x
+                bne +
+                ; If non-disk: search for folders and move them to top
+                jsr SimpleSortList
++               ; Fill static disk info structs
+                jsr GetDiskValues
+                ;
+                jmp InstallIRQ; also paints taskbar
+
+; Sets FDFE to Str_Title_DriveA/B + 2
+SetFDFEToTitle  ldx CurDeviceInd
+                lda Str_Title_DrvLo,x
+                sta $fd
+                lda Str_Title_DrvHi,x
+                sta $fe
+                rts
+
+;bTooManyFiles   !byte 0 ZP
+dirname         !pet "$"
+max_entries     !byte 0
+bReadsFiles     !byte 0
+MAX_ROW_COUNT = 1
+; Load the directory
+; Required: 
+; * string list address in FBFC
+; * CurDeviceNo filled
+; * max_entries filled
+LoadDir         lda #5
+                jsr InitHourglass
+                ;
+                jsr error_codeTo0
+                sta max_fn_len_plus2
+                sta bTooManyFiles
+                sta bReadsFiles
+                sta disk_size
+                sta disk_size+1
+                sta real_num_files+1
+                lda $fb
+                sta $02
+                lda $fc
+                sta $03
+                ;
+                lda #$01      ; logical number
+                ldx CurDeviceNo ; device number
+                ldy #$00      ; secondary address
+                jsr SETLFS    ; set file parameters ("OPEN 1,X,0")
+                ldx #<dirname
+                ldy #>dirname
+                lda #$01      ; filename length
+                jsr SETNAM    ; set filename
+                ;
+                jsr OPEN        ; open directory as file
+                bcc +
+                sta error_code
+                jmp close_me
++               ldx #$01
+                jsr CHKIN       ; set input device
+                jsr GETIN       ; read start address LSB and ignore
+                lda $90
+                beq +
+                lda #4; FILE NOT FOUND
+                sta error_code
+                jmp close_me
++               jsr GETIN       ; read start address MSB and ignore
+                jsr GETIN       ; read link address LSB and ignore
+                ;
+row             jsr PaintHourglass
+                jsr GETIN       ; read link address MSB and ignore
+                ldy #0
+                jsr GETIN       ; read blocks LSB
+                sta ($02),y
+                iny
+                jsr GETIN       ; read blocks MSB
+                sta ($02),y
+                iny
+getchar         jsr GETIN       ; read char
+                sta ($02),y
+                iny
+                tax; cmp #$00
+                bne getchar     ; repeat until end of line
+                ;
+                jsr GETIN       ; read char
+                tax; cmp #$00
+                beq close_dir_chan
+                lda bReadsFiles
+                bne +
+                jsr ReadDiskName
+                inc bReadsFiles
+                jmp row
++               jsr Parse
+                lda #FILE_RECORD_LENGTH
+                jsr AddTo02
+                inc num_files
+                lda num_files
+                cmp max_entries
+                bcs load_rest
+                bcc row
+                ;
+close_dir_chan  lda num_files
+                sta real_num_files
+                jmp close_dir_chanE
+load_rest       lda num_files
+                sta real_num_files
+                sta bTooManyFiles; it's <> 0
+                ; Loads the rest of the directory without saving the data to memory
+--              jsr PaintHourglass
+                jsr GETIN       ; read link address MSB and ignore
+                jsr GETIN       ; read blocks LSB
+                ldy #0
+                sta ($02),y
+                jsr GETIN       ; read blocks MSB
+                ldy #1
+                sta ($02),y
+-               jsr GETIN       ; read char
+                tax; cmp #$00
+                bne -           ; repeat until end of line
+                jsr GETIN       ; read char
+                tax; cmp #$00
+                beq close_dir_chanE
+                inc real_num_files
+                bne +
+                inc real_num_files+1
++               jsr AddToDiskSize
+                jmp --
+                ;
+close_dir_chanE lda disk_size
+                sta occupied
+                lda disk_size+1
+                sta occupied+1
+                ; Get free blocks and add them to disk_size
+                ldy #0
+                lda ($02),y
+                sta free_blocks
+                clc
+                adc disk_size
+                sta disk_size
+                iny
+                lda ($02),y
+                sta free_blocks+1
+                adc disk_size+1
+                sta disk_size+1
+                bcc close_me
+                ; Carry is set --> 16 bit overflow (> $ffff)
+                ; E.g., root dirs of SD2IECs
+                lda #$ff
+                sta disk_size
+                sta disk_size+1
+                ;
+close_me        jsr CLRCHN      ; end data input/output of file
+                lda #$01 
+                jmp CLOSE       ; close file
+
+AddToDiskSize   ldy #0
+                lda ($02),y
+                clc
+                adc disk_size
+                sta disk_size
+                iny
+                lda ($02),y
+                adc disk_size+1
+                sta disk_size+1
+                rts
+
+max_fn_len_plus2!byte 0; (maximal filename length) + 2
+Parse           ; Add file size in ($02) to disk_size
+                jsr AddToDiskSize
+                sty y_in_fd
+                ; Find first "
+-               iny
+                lda ($02),y
+                cmp #$22
+                bne -
+                ; Copy filename to $02,2
+-               iny
+                inc y_in_fd
+                lda ($02),y
+                cmp #$22
+                beq +
+                sty oldy
+                ldy y_in_fd
+                sta ($02),y
+                ldy oldy
+                jmp -
+                ; Terminate with 0
++               sty oldy
+                ldy y_in_fd
+                lda #0
+                sta ($02),y
+                ; Update max_fn_len_plus2 if necessary
+                cpy max_fn_len_plus2
+                bcc +
+                sty max_fn_len_plus2
++               ; Find first char after spaces
+                ldy oldy
+-               iny
+                lda ($02),y
+                cmp #$20
+                beq -
+                ; Save char at end of record
+                sty oldy
+                ldy #19
+                sta ($02),y
+                ; If it's DIR, replace by "F"
+                cmp #"D"
+                bne +
+                ldy oldy
+                iny
+                lda ($02),y
+                cmp #"E"
+                beq +
+                lda #"F"
+                ldy #19
+                sta ($02),y
++               rts
+
+ReadDiskName    lda #4
+                ;sta Val
+                tay
+                jsr SubAFromFD
+-               lda ($02),y
+                sta ($fd),y
+                cmp #$22
+                beq +
+                iny
+                cpy #20
+                bcc -
++               lda #0
+                sta ($fd),y
+                lda #4
+                jsr AddToFD
+                ldy #15
+                jmp KillSpaces
+
+; Puts folders to top of list
+SimpleSortList  ldx CurDeviceInd
+                lda #0
+                sta $fb
+                sta $fd
+                lda StringListDrvHi,x
+                sta $fc
+                sta $fe
+                lda #FILE_RECORD_LENGTH
+                jsr AddToFB
+                jsr AddToFD
+                ldx #1
+                ;
+--              ldy #(FILE_RECORD_LENGTH-1)
+                lda ($fb),y
+                cmp #$46; "F" (folder)
+                bne +
+                ; FB is folder
+                ; Swap FB and FD
+                ldy #(FILE_RECORD_LENGTH-1)
+-               lda ($fb),y
+                sta $d0
+                lda ($fd),y
+                sta ($fb),y
+                lda $d0
+                sta ($fd),y
+                dey
+                bpl -
+                lda #FILE_RECORD_LENGTH
+                jsr AddToFD
++               ; FB not a folder
+                lda #FILE_RECORD_LENGTH
+                jsr AddToFB
+                inx
+                cpx num_files
+                bcc --
+                rts
+
+; Tables for GetDiskValues
+;GDV_SourceLo    !byte <disk_size
+;                !byte <real_num_files
+;                !byte <occupied
+;                !byte <free_blocks
+
+;GDV_SourceHi    !byte >disk_size
+;                !byte >real_num_files
+;                !byte >occupied
+;                !byte >free_blocks
+
+GDV_SourceLo    !byte <disk_size
+                !byte <occupied
+                !byte <free_blocks
+                !byte <real_num_files
+
+GDV_SourceHi    !byte >disk_size
+                !byte >occupied
+                !byte >free_blocks
+                !byte >real_num_files
+
+;GDV_DestLo      !byte <Str_DiskSize
+;                !byte <Str_NumFiles
+;                !byte <Str_Occupied
+;                !byte <Str_BlocksFree
+
+;GDV_DestHi      !byte >Str_DiskSize
+;                !byte >Str_NumFiles
+;                !byte >Str_Occupied
+;                !byte >Str_BlocksFree
+
+AddrInFBtofile_size
+                ldy #0
+                lda ($fb),y
+                sta file_size
+                iny
+                lda ($fb),y
+                sta file_size+1
+                rts
+; Requires:
+; disk_size, real_num_files, occupied, free_blocks
+GetDiskValues   ; Offset in destination strings:
+                ; Drive A = 0
+                ; Drive B = 4
+                ldx CurDeviceInd
+                txa
+                asl
+                asl
+                sta ZP_5F
+                ; Fill binary/static data
+                lda max_fn_len_plus2
+                sta Max_Fn_Len_Plus2,x
+                ;
+                lda free_blocks
+                sta BlocksFreeHexLo,x
+                lda free_blocks+1
+                sta BlocksFreeHexHi,x
+                ;
+                lda disk_size
+                sta DiskSizeHexLo,x
+                lda disk_size+1
+                sta DiskSizeHexHi,x
+                ; Convert four 16-bit values
+                ldx #3
+--              ; Source -> FBFC
+                lda GDV_SourceLo,x
+                sta $fb
+                lda GDV_SourceHi,x
+                sta $fc
+                ; Destination -> FDFE
+                ; plus 0 for drive A or 4 for drive B
+                ;lda GDV_DestLo,x
+                ;clc
+                ;adc ZP_5F
+                ;sta $fd
+                ;lda GDV_DestHi,x
+                ;adc #0
+                ;sta $fe
+                txa
+                asl
+                asl
+                asl
+                adc ZP_5F
+                adc #<Str_DiskSize
+                sta $fd
+                lda #>Str_DiskSize
+                adc #0
+                sta $fe
+                ; Source value -> file_size
+                jsr AddrInFBtofile_size
+                ; Y = 0
+                ; X will be destroyed by conversion
+                txa
+                pha
+                dey
+                jsr ConvertToDecStr
+                pla
+                tax
+                ;
+                dex
+                bpl --
+                rts
+
+; Converts file_size to 4 char string at FDFE+Y
+ConvertToDecStr jsr ConvertToDec
+; Converts file_size_dec to 4 char string at FDFE
+                lda file_size_dec+2
+                beq +
+                ; Values > 9999 blocks are shown as "xx K"
+                jsr MakeLoNybChar
+                sta ($fd),y
+                ;
+                iny
+                lda file_size_dec+1
+                jsr MakeHiNybChar
+                sta ($fd),y
+                ;
+                iny
+                lda #$20
+                sta ($fd),y
+                ;
+                iny
+                lda #$4b          ; "K"
+                sta ($fd),y
+                rts
++               ; Normal four-digit value
+                ;ldy #0
+                lda file_size_dec+1
+                jsr MakeHiNybChar
+                sta ($fd),y
+                ;
+                iny
+                lda file_size_dec+1
+                jsr MakeLoNybChar
+                sta ($fd),y
+                ;
+                iny
+                lda file_size_dec
+                jsr MakeHiNybChar
+                sta ($fd),y
+                ;
+                iny
+                lda file_size_dec
+                jsr MakeLoNybChar
+                sta ($fd),y
+                ; Replace leading zeroes by spaces,
+                ; but leave final digit intact
+                dey
+                dey
+                dey
+                ldx #3
+-               lda ($fd),y
+                cmp #$30
+                bne +
+                lda #$20
+                sta ($fd),y
+                iny
+                dex
+                bne -
++               rts
+
+MakeHiNybChar   lsr
+                lsr
+                lsr
+                lsr
+                ora #$30
+                rts
+
+MakeLoNybChar   and #$0f
+                ora #$30
+                rts
+
+; Converts file_size (hex) to file_size_dec (decimal)
+ConvertToDec    sed
+                lda #0
+                sta file_size_dec
+                sta file_size_dec+1
+                sta file_size_dec+2
+                ldx #16
+-               asl file_size
+                rol file_size+1
+                lda file_size_dec
+                adc file_size_dec
+                sta file_size_dec
+                lda file_size_dec+1
+                adc file_size_dec+1
+                sta file_size_dec+1
+                lda file_size_dec+2
+                adc file_size_dec+2
+                sta file_size_dec+2
+                dex
+                bne -
+                cld
+                rts
+                
+;======================================================================
+
+SETLFS_OPEN     jsr SETLFS
+                jmp OPEN
+
+PrepareSourceCh lda copypastelength
+                ldx #<Str_FileName
+                ldy #>Str_FileName
+                jsr SETNAM
+                lda #$03      ; file number 3
+                tay           ; secondary address 3
+                rts
+
+last_bytes      !byte 0
+copypastelength !byte 0
+write_fn        !pet "0123456789abcdef",0,0,0,0,0
+write_length    !byte 0
+; Copies and pastes file in Str_FileName from Disk
+; DiskToCopyFrom to DiskToCopyTo in chunks of $100
+; bytes (i.e. pages)
+CopyPasteFile   jsr UninstallIRQ_FakeTB
+                ;jsr FakeTaskbar
+                ;
+                ldx #0
+-               lda Str_FileName,x
+                sta write_fn,x
+                beq +
+                inx
+                bne -
++               stx copypastelength
+                ; Append ",p,w" to end of write_fn
+                ldy #0
+                ldx copypastelength
+-               lda write_appendix,y
+                sta write_fn,x
+                inx
+                iny
+                cpy #4
+                bcc -
+                stx write_length
+                lda #0
+                sta write_fn,x
+                ; Setup buffer in memory
+                ;lda #<FREEMEM = 0
+                sta $AE
+                lda #>FREEMEM
+                sta $AF
+                ; Prepare source channel
+                jsr PrepareSourceCh
+                ldx DiskToCopyFrom
+                jsr SETLFS_OPEN
+                bcs copy_readerror
+                ; Prepare destination channel
+                lda write_length
+                ldx #<write_fn
+                ldy #>write_fn
+                jsr SETNAM
+                lda #$02      ; file number 2
+                ldx DiskToCopyTo
+                tay           ; secondary address 2
+                jsr SETLFS_OPEN
+                bcs copy_readerror
+--              ; Read a page from source
+                ldx #$03      ; filenumber 3
+                jsr CHKIN     ; file 3 now used as input
+                ldy #$00
+-               jsr READST
+                bne copy_eof  ; either EOF or read error
+                jsr CHRIN     ; get a byte from file
+                sta ($AE),y   ; write byte to memory
+                iny
+                bne -
+                jsr CLRCHN
+                ; Write page to destination
+                ldx #$02      ; filenumber 2
+                jsr CHKOUT    ; file 2 now used as output
+                ldy #$00
+-               jsr READST
+                bne writeerror; write error
+                lda ($AE),y   ; get byte from memory
+                jsr CHROUT    ; write byte to file
+                iny
+                bne -
+                jsr UpdateProgbar
+                jsr CLRCHN
+                jmp --
+copy_eof        and #$40
+                beq copy_readerror
+                ; End of file, write last bytes to dest file
+                sty last_bytes
+                LDX #$02      ; filenumber 2
+                JSR CHKOUT    ; filenumber 2 is std output
+                ldy #0
+-               jsr READST
+                bne writeerror; write error
+                lda ($AE),y   ; get byte from memory
+                jsr CHROUT    ; write byte to file
+                iny
+                cpy last_bytes
+                bcc -
+                jsr UpdateProgbar
+copy_close      jsr CLRCHN
+                lda #$03      ; filenumber 3
+                jsr CLOSE
+                lda #$02      ; filenumber 2
+                jmp CLOSE
+
+copy_readerror  sta error_code; STATUS byte
+                jmp copy_close
+
+writeerror      lda #31
+                sta error_code
+                lda DiskToCopyTo
+                sta CurDeviceNo
+                jsr IsWriteProtect
+                ldx CurDeviceInd
+                lda WriteProtected,x
+                beq +
+                ; Destination disk write protected
+                lda #30
+                sta error_code
++               jmp copy_close
+
+;prog_bar        !byte 0,0
+;UpdateProgbar   ;lda prog_bar
+;;                sta $fb
+;;                lda prog_bar+1
+;;                sta $fc
+;                ldy #CTRLSTRUCT_VAL_LO
+;                lda (WindowCtrlPtr),y
+;                tax
+;                inx
+;                txa
+;                sta (WindowCtrlPtr),y
+;                bcc +
+;                ldy #CTRLSTRUCT_VAL_HI
+;                lda (WindowCtrlPtr),y
+;                tax
+;                inx
+;                txa
+;                sta (WindowCtrlPtr),y
+;+               jmp ShowTheDialog
+UpdateProgbar   ldy #PROGBAR_VAL_LO
+                lda (WindowCtrlPtr),y
+                clc
+                adc #1
+                sta (WindowCtrlPtr),y
+                bcc +
+                iny ; VAL_HI = VAL_LO+1
+                lda (WindowCtrlPtr),y
+                adc #0
+                sta (WindowCtrlPtr),y
++               jmp ShowTheDialog
+
+; Reads file in Str_FileName from Disk with
+; CurDeviceNo to buffer in FILEVIEWERDATA
+ReadFileToViewerBuf
+                jsr UninstallIRQ_FakeTB
+                ;
+                lda #<FILEVIEWERBUF_END
+                sta ViewerEOF
+                lda #>FILEVIEWERBUF_END
+                sta ViewerEOF+1
+                ;
+                lda #1
+                jsr InitHourglass
+                ;
+                ldx #0
+                stx error_code
+-               lda Str_FileName,x
+                beq +
+                inx
+                bne -; jmp -
++               stx copypastelength
+                ; Setup buffer in memory
+                lda #<FILEVIEWERBUF_START
+                sta $AE
+                lda #>FILEVIEWERBUF_START
+                sta $AF
+                ; Prepare source channel
+                jsr PrepareSourceCh
+                ldx CurDeviceNo
+                jsr SETLFS_OPEN
+                bcs readerr
+                ; Read from file and save
+                ldx #3        ; filenumber 3
+                jsr CHKIN     ; file 3 now used as input
+                ldx #(FILEVIEWERBUF_BLOCKS - 1)
+                ldy #0
+-               jsr READST
+                bne eof       ; either EOF or read error
+                jsr CHRIN     ; get a byte from file
+                sta ($AE),y   ; write byte to memory
+                iny
+                bne -
+                inc $AF
+                ;
+                txa
+                pha
+                tya
+                pha
+                jsr PaintHourglass
+                pla
+                tay
+                pla
+                tax
+                ;
+                dex
+                bpl -
+                bmi close
+eof             and #$40
+                beq readerr
+                ; End of file
+                tya
+                clc
+                adc $AE
+                sta ViewerEOF
+                lda $AF
+                adc #0
+                sta ViewerEOF+1
+-               lda #32
+                sta ($AE),y
+                iny
+                bne -
+                inc $AF
+                dex
+                bpl -
+close           jsr CLRCHN
+                lda #$03      ; filenumber 3
+                jsr CLOSE
+                jmp InstallIRQ
+
+readerr         sta error_code; STATUS byte
+                jmp close
+
+; Deletes highlighted file or directory in filelistview from disk
+DeleteFile      jsr UninstallIRQ_FakeTB
+                jsr GetFile
+                lda Str_FileType
+                cmp #"F"
+                bne deletefile
+                ; Delete directory
+                lda #"R"
+                sta FREEMEM
+                lda #"D"
+                sta FREEMEM+1
+                jsr Str_FnToFreeMem
+                inx
+                inx
+                inx
+                jmp +
+deletefile      ; Delete file
+                lda #"S"
+                sta FREEMEM
+                lda #":"
+                sta FREEMEM+1
+                ldx #$ff
+-               inx
+                lda Str_FileName,x
+                sta FREEMEM+2,x
+                bne -
+                inx
+                inx
++               txa ; command length
+                jmp DiskSendCommand
+
+Str_FnToFreeMem lda #":"
+                sta FREEMEM+2
+                ldx #$ff
+-               inx
+                lda Str_FileName,x
+                sta FREEMEM+3,x
+                bne -
+                rts
+
+RenameFile      jsr GetFile
+                lda #"R"
+                sta FREEMEM
+                lda #":"
+                sta FREEMEM+1
+                jsr SelectControl3
+                ldx ControlIndex+EDITSL_CARETPOS
+                lda #"="
+                sta FREEMEM+2,x
+                jsr DlgEditToFreMem
+                ldx ControlIndex+EDITSL_CARETPOS
+                inx
+                txa
+                clc
+                adc #<(FREEMEM+2)
+                sta $fb
+                lda #>(FREEMEM+2)
+                adc #0
+                sta $fc
+                ldy #$ff
+-               iny
+                lda Str_FileName,y
+                sta ($fb),y
+                bne -
+                ;
+                jsr UninstallIRQ_FakeTB
+                ldx #$ff
+-               inx
+                lda FREEMEM,x
+                bne -
+                txa
+                jmp DiskSendCommand
+
+renam_dsk_cmd1  !pet "u1 8 0 18 0",0
+renam_dsk_cmd2  !pet "b-p 8 144",0
+renam_dsk_cmd3  !pet "u2 8 0 18 0",0
+renam_dsk_cmd4  !pet "i0",0
+
+renam_dsk_hlp   ; 1581
+                !byte "4", "0", 0
+                ; 1541
+                !byte "1", "8", "4"
+
+STROUT_CLRCHN   sta $fb
+                sty $fc
+                ldy #0
+-               lda ($fb),y
+                beq +
+                jsr CHROUT
+                iny
+                bne -
++               jmp CLRCHN
+
+StrDialogEditToFD
+                lda #<Str_DialogEdit
+                sta $fd
+                lda #>Str_DialogEdit
+                sta $fe
+                rts
+
+RenameDisk      jsr UninstallIRQ_FakeTB
+                ;
+                ldx CurDeviceInd
+                lda IsDiskDrive,x
+                beq ++
+                ; Is a disk drive
+                lda DriveType,x
+                cmp #4
+                bcc Prepare1541; 1541
+                ; 1581
+                bcs Prepare1581
+++              ; Not a disk drive
+                lda IsDiskImage,x
+                beq Prepare1541; Folder (or virtual device in VICE), works only for d64 images as virtual device in VICE
+                ; Disk image
+                cmp #3
+                bcc Prepare1541
+                beq Prepare1581
+                rts
+Prepare1581     ldx #0
+                beq Prepare15X1_Hlp; takes branch
+Prepare1541     ldx #3
+Prepare15X1_Hlp lda renam_dsk_hlp,x
+                sta renam_dsk_cmd1+7
+                sta renam_dsk_cmd3+7
+                sta renam_dsk_cmd2+6
+                inx
+                lda renam_dsk_hlp,x
+                sta renam_dsk_cmd1+8
+                sta renam_dsk_cmd3+8
+                inx
+                lda renam_dsk_hlp,x
+                sta renam_dsk_cmd2+7
+                sta renam_dsk_cmd2+8
+                ; Rename disk
+                lda #15
+                sta channel
+                jsr CloseChannel
+                lda #"I"
+                sta FREEMEM
+                lda #"0"
+                sta FREEMEM+1
+                lda #":"
+                sta FREEMEM+2
+                lda #3
+                jsr OpenChannel
+                lda error_code
+                bne ++
+                ;
+                lda #8
+                sta channel
+                jsr CloseChannel
+                lda #"#"
+                sta FREEMEM
+                ;lda #0
+                ;sta FREEMEM+1
+                lda #1;2
+                jsr OpenChannel
+                lda error_code
+                bne ++
+                ; Map BASIC back in for STROUT
+                ;lda #55
+                ;sta $01
+                ; print#15,"u1:"8;0;18;0:rem track 18,sector 0 lesen
+                ldx #15
+                jsr CHKOUT
+                lda #<renam_dsk_cmd1
+                ldy #>renam_dsk_cmd1
+                jsr STROUT_CLRCHN
+                ; print#15,"b-p:"8;144:rem pointer aufdisknamen setzen
+                ldx #15
+                jsr CHKOUT
+                lda #<renam_dsk_cmd2
+                ldy #>renam_dsk_cmd2
+                jsr STROUT_CLRCHN
+                ; print#8,nn$;:rem neuen disknamen setzen
+                ldx #8
+                jsr CHKOUT
+                jsr StrDialogEditToFD
+                lda $fd
+                ldy $fe
+                jsr STROUT_CLRCHN
+                ldy #15
+                jsr KillSpaces
+                ; print#15,"u2:"8;0;18;0:rem auf disk schreiben
+                ldx #15
+                jsr CHKOUT
+                lda #<renam_dsk_cmd3
+                ldy #>renam_dsk_cmd3
+                jsr STROUT_CLRCHN
+                ; print#15,"i0"
+                ldx #15
+                jsr CHKOUT
+                lda #<renam_dsk_cmd4
+                ldy #>renam_dsk_cmd4
+                jsr STROUT_CLRCHN
+                ;
+++              ; Close channels
+                lda #8
+                jsr CLOSE
+                lda #15
+                jsr CLOSE
+                lda #53
+                sta $01
+-               rts
+
+; Replaces spaces at end of string in FDFE with 0
+; Required: end string index in Y
+KillSpaces      lda ($fd),y
+                cmp #$20
+                bne +
+                lda #0
+                sta ($fd),y
+                dey
+                bpl KillSpaces
++               rts
+
+; Formats disk in device with DeviceNumber
+FormatDisk      ; Select edit control in dialog
+                jsr SelectControl1
+                lda ControlIndex+EDITSL_CARETPOS
+                beq -; No disk name specified
+                pha
+                lda #"N"
+                sta FREEMEM
+                lda #":"
+                sta FREEMEM+1
+                pla
+                tax
+                tay
+                iny
+                iny
+                jsr DlgEditToFreMem
+                ; Check radio buttons
+                tya
+                pha
+                jsr SelectControl2
+                pla
+                tay
+                lda ControlHilIndex
+                beq +
+                ; Full format (with ID)
+                lda #","
+                sta FREEMEM,y
+                iny
+                lda #"I"
+                sta FREEMEM,y
+                iny
+                lda #"D"
+                sta FREEMEM,y
+                iny
++               jsr UninstallIRQ_FakeTB
+                tya
+                jmp DiskSendCommand
+
+DlgEditToFreMem dex
+-               lda Str_DialogEdit,x
+                sta FREEMEM+2,x
+                dex
+                bpl -
+                rts
+
+writeprot_cmd   !pet "m-r", $1e, 0, 1
+; Detects write protection of disk if 1541
+; Expects DeviceNumber filled
+; Output: 0/1/2 in WriteProtected
+;         0: no, 1: yes, 2: n.a.
+IsWriteProtect  lda #2
+                sta res
+                lda driveType
+                cmp #2
+                bne ++
+                ; It's a 1541 drive
+                lda #0
+                sta res
+                ; Wait a second...
+                tax; ldx #0
+--              tay; ldy #0
+-               dey
+                bne -
+                dex
+                bne --
+                ;
+                lda #0
+                sta $90
+                lda CurDeviceNo
+                jsr LISTEN
+                lda #$6f
+                jsr LSTNSA
+                bit $90
+                bmi +
+                ldy #$00
+-               lda writeprot_cmd,y
+                jsr IECOUT
+                iny
+                cpy #06
+                bne -
+                jsr UNLSTN
+                lda #$00
+                sta $90
+                lda CurDeviceNo
+                jsr TALK
+                lda #$6f
+                jsr TALKSA
+                jsr IECIN
+                cmp #$10
+                beq +
+                lda #1
+                sta res
++               php
+                jsr UNTALK
+                plp
+                ; Write to WriteProtected
+++              ldx CurDeviceInd
+                lda res
+                sta WriteProtected,x
+                rts
+
+; CMD drive info at $fea4 in drive ROM
+cmdinfo         !pet "m-r"
+                !byte $a4,$fe,$02,$0d
+; CBM drive info at $e5c5 in drive ROM
+cbminfo         !pet "m-r"
+                !byte $c5,$e5,$02,$0d
+; 1581 drive info at $a6e8 in drive ROM
+info1581        !pet "m-r"
+                !byte $e8,$a6,$02,$0d
+driveType       !byte 0
+Str_DriveTypes  !pet "n.a.","n.a.","1541","1571","1581"," FDD"," HDD"," RDD","RAML"
+;Str_DiskSpace   !pet "n.a.","n.a."," 664"," 664","3160","n.a.","n.a.","n.a.","n.a."
+;DiskSpaceHexHi  !byte $27  , $27  , $02  , $02  , $0c  , $27  , $27  , $27  , $27
+;DiskSpaceHexLo  !byte $0f  , $0f  , $98  , $98  , $58  , $0f  , $0f  , $0f  , $0f
+
+; Detects the drive type of device in DeviceNumber
+; Expects DeviceNumber filled
+; Output in DriveType8/9 as string (4 letters)
+; Available representations in DriveType:
+; 0 - No serial device available
+; 1 - foreign drive (MSD, Excelerator, Lt.Kernal, etc.)
+; 2 - 1541 drive
+; 3 - 1571 drive
+; 4 - 1581 drive
+; 5 - FD drive
+; 6 - HD drive
+; 7 - RD drive
+; 8 - RAMLink
+DetectDriveType ldy #0
+                sty driveType
+                ; Check drive
+                sty STATUS
+                lda CurDeviceNo
+                jsr LISTEN; opens the device for listening
+                lda #$ff; Secondary address - $0f OR'ed with $f0 to open
+                jsr LSTNSA; opens the channel with sa of 15
+                lda STATUS; check the status byte
+                bpl +
+                ; ERROR
+                rts
+                ;
++               jsr openchannel
+                ldx #<cmdinfo; check to see if it is a CMD drive first
+                ldy #>cmdinfo
+                jsr opentwo
+                jsr CHRIN
+                cmp #70; is it 'f' for FD series drives?
+                bne +
+                jsr CHRIN; get next character
+                cmp #68; is it 'd' for FD series drives?
+                bne l2
+                lda #5;#$e0; indicates that it is a FD drive at device number
+                bne getdrive
++               cmp #72; is it 'h' for HD series drives?
+                bne +
+                jsr CHRIN; get next character
+                cmp #68; is it 'd' for HD series drives?
+                bne l2
+                lda #6;#$c0; indicates that it is a HD drive at device number
+                bne getdrive; relative JMP
++               cmp #82; is it 'r' for RL/RD series?
+                bne l2
+                jsr CHRIN; get next character
+                cmp #68; is it 'd' for RD series?
+                bne +
+                lda #7;#$f0; indicates that it is a RD drive at device number
+                bne getdrive; relative JMP
++               cmp #76; is it 'l' for RL series?
+                bne l2
+                lda #8;#$80; indicates that it is a RAMLink drive at device number
+                bne getdrive; relative JMP
+l2              ; Check for CBM devices
+                jsr closechannel; close command channel
+                jsr openchannel
+                ldx #<cbminfo; check to see if it is a 1541/1571 drive
+                ldy #>cbminfo
+                jsr opentwo
+                jsr CHRIN; gets the drive info
+                cmp #53; is it '5' for the 15xx drives?
+                bne l3
+                jsr CHRIN; gets the next number
+                cmp #52; is it '4' for the 1541?
+                bne +
+                lda #2;#41; indicates a 1541 at that device number
+                bne getdrive; relative JMP
++               cmp #55; is it '7' for the 1571?
+                bne l3
+                lda #3;#71; indicates a 1571 at that device number
+                bne getdrive; relative JMP
+l3              ; Polls for a 1581 drive
+                jsr closechannel; closes the command channel
+                jsr openchannel
+                ldx #<info1581; check to see if it is a 1581 drive
+                ldy #>info1581
+                jsr opentwo
+                jsr CHRIN; gets the drive info
+                cmp #53; is it a '5' for a 15xx drive?
+                bne l4
+                jsr CHRIN; gets the next drive number
+                cmp #56; is it a '8' for a 1581?
+                bne l4
+                lda #4;#81; indicates a 1581 at that device number
+                bne getdrive; relative JMP
+l4              ; foreign drive- just mark it as foreign
+                lda #1; indicates a foreign device number
+                ;bne getdrive; relative JMP
+getdrive        sta driveType
+                jsr closechannel
+                ;
+                ldx CurDeviceInd
+                lda cmp_tab,x
+                sta smc_y+1
+                lda driveType
+                sta DriveType,x
+                ldy y_tab,x
+                ;lda driveType
+                asl
+                asl
+                tax
+-               lda Str_DriveTypes,x
+                sta Str_DriveType,y
+                ;lda Str_DiskSpace,x
+                ;sta Str_DiskSize,y
+                inx
+                iny
+smc_y           cpy #4
+                bcc -
+                rts
+                
+y_tab           !byte 0,4
+cmp_tab         !byte 4,8
+
+closechannel    jsr CLRCHN
+                lda #$0f; lfn
+                jmp CLOSE; and closes it
+
+; Opens the command channel and issues a command
+openchannel     lda #$0f; lfn
+                tay; sa for command channel
+                ldx CurDeviceNo
+                jsr SETLFS; set up the open sequence
+                lda #$07; length of command (m-r command)
+                rts
+
+opentwo         jsr SETNAM; sends the command
+                jsr OPEN; opens the file
+                ldx #$0f; lfn
+                jmp CHKIN; redirect input
+
+; Detects if current drive is a disk drive
+; Puts result into IsDiskDrive,X
+IsItADiskDrive  ldx CurDeviceInd
+                lda #0
+                ldy driveType
+                cpy #2
+                bcc +
+                cpy #5
+                bcs +
+                lda #1
++               sta IsDiskDrive,x
+                rts
+
+; Opens channel #15 and sends command in FREEMEM
+; Required:
+; * Command length required in A
+; * CurDeviceNo filled
+DiskSendCommand ldx #$0f
+                stx channel
+                jsr OpenChannel
+                lda error_code
+                beq +
+                ; Error (channel has already been closed)
+                rts
++               jmp CloseChannel
+
+; Opens Channel [channel] with command in FREEMEM
+; Requires:
+; * command length in A
+; * channel filled
+; * CurDeviceNo filled
+OpenChannel     ldx #0
+                stx error_code
+                ;ldx #<FREEMEM = 0
+                ldy #>FREEMEM
+                jsr SETNAM    ; call SETNAM
+                lda channel   ; file number [channel]
+                ldx CurDeviceNo
+                tay           ; secondary address [channel]
+                jsr SETLFS_OPEN
+                bcs +
+                rts
++               ; Error
+                sta error_code
+CloseChannel    jsr CLRCHN    ; call CLRCHN
+                lda channel   ; filenumber [channel]
+                jmp CLOSE     ; call CLOSE
