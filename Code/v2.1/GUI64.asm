@@ -164,7 +164,20 @@ autostart       ; No kernal messages ("SEARCHING FOR ..." etc)
                 lda #(((>(SCRMEM-VICBANK))*4)+((>(CHARBASE-VICBANK))/4))
                 sta $d018
 }
-                ;
+
+!ifdef WIN{     
+                ; Initialize color ram for taskbar
+                lda CSTM_WindowClr
+                and #7
+                ora #8
+                ldx #39
+-               sta CLRMEM+880,x
+                sta CLRMEM+920,x
+                sta CLRMEM+960,x
+                dex
+                bpl -
+}
+
                 jsr InstallIRQ
 
 !zone MainLoop
