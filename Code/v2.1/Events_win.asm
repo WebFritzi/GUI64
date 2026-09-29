@@ -241,6 +241,7 @@ ClickInMM       jmp ClickInMenuMode
 ClickInNormalMode
                 ; Is in start btn?
                 lda MouseInfo+4
+                and #%00000011
                 bne +
                 lda MouseInfo+2
                 cmp #47
