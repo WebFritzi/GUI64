@@ -42,6 +42,7 @@ A huge THANK YOU to all the users on http://www.Forum64.de who have supported me
 ## Update Log (since v1.97)
 ### Version 2.1
 * Significant memory savings through code optimization
+* long clicks in scrollbars and updown controls
 * New memory map
 * Application Programming Interface added
 ### Version 2.0
