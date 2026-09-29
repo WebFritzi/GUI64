@@ -168,7 +168,6 @@ autostart       ; No kernal messages ("SEARCHING FOR ..." etc)
 !ifdef WIN{     
                 ; Initialize color ram for taskbar
                 lda CSTM_WindowClr
-                and #7
                 ora #8
                 ldx #39
 -               sta CLRMEM+880,x
@@ -579,7 +578,7 @@ Enable_CIA_IRQ  lda #%11111111
                 !source "API_Functions.asm"
 
 ; Prog End
-; WIN: 5EA4,   MAC: 5A5D
+; WIN: 5EB9,   MAC: 5A5D
 
 *=$5f00
 GUI_CreateWindow                jmp CreateWindow
@@ -631,7 +630,7 @@ GUI_MapOutIO                    jmp MapOutIO
 GUI_MapInIO                     jmp MapInIO
 GUI_GetScreenMem                jmp App_GetScreenMem
 
-; ATTENTION: APP_START is at $6000
+; ATTENTION: PATH_A_EX is at $6000
 !warnon W1000
 
 
