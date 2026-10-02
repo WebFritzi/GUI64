@@ -1047,6 +1047,9 @@ SelCtrl_AddBits pha; push bits
 SelectControl0  lda #0
                 beq SelectControl
 
+SelectControl0  lda #1
+                bne SelectControl
+
 SelectControl2  lda #2
                 bne SelectControl
 
@@ -1056,7 +1059,7 @@ SelectControl3  lda #3
 SelectControl4  lda #4
                 bne SelectControl
 
-SelectControl1  lda #1
+SelectControl_Y tya
 ; Copies control struct of control with index in A
 ; into local control struct
 ; Expects control index in A
