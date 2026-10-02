@@ -593,7 +593,7 @@ GUI_UpdateControl               jmp UpdateControl
 GUI_SelectCtrl_AddBits          jmp SelCtrl_AddBits
 }
 !ifdef WIN{
-GUI_SelectCtrl_AddBits          jmp EmptyWndProc; just rts
+GUI_SelectCtrl_AddBits          jmp SelectControl_Y;jmp EmptyWndProc; just rts
 }
 GUI_SetCtrlStringList           jmp SetCtrlStringList
 GUI_SetCtrlString               jmp SetCtrlString
