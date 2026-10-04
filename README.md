@@ -17,7 +17,7 @@ Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
 Joystick in Port #2 (right click with Commodore key + fire)
 
 ## Apps
-Since GUI64 v2.1, it is possible for programmers to develop apps for GUI64. An app is a PRG binary named "[appname].gui". To build an app, programmers should include the file *gui64.inc.asm* in their code. This file, along with demo apps and an API reference document, can be found in the "Apps" folder. Check out more apps on [Guido Bonerts'](https://github.com/guidobonerz/gui64_apps) GitHub page.
+Since GUI64 v2.1, it is possible for programmers to develop apps for GUI64. An app is a PRG binary named "[appname].gui". To build an app, programmers should include the file *gui64.inc.asm* in their code. This file, along with demo apps and an API reference document, can be found in the "Apps" folder. Check out more apps on [Guido Bonerts' GitHub page](https://github.com/guidobonerz/gui64_apps).
 
 ## Time
 The current time is displayed either if the host is an Ultimate (with Command Interface enabled) or if there is a working [WiC64](https://www.wic64.net/web/) attached to the user port. Otherwise, the clock is set to "00:00".
