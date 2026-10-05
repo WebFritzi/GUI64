@@ -44,11 +44,11 @@ DBLFRAME_RGTBTM = BIT_CTRL_DBLFRAME_RGT + BIT_CTRL_DBLFRAME_BTM
                 lda #11                    ; Copy control struct of control #11
                 jsr GUI_SelectControl      ; to $20 - $2E
                 lda #0                             ; Set
-                sta ControlIndex+UPDOWN_DIGIT_LO   ; UpDown value
-                sta ControlIndex+UPDOWN_DIGIT_HI   ; to "00",
-                sta ControlIndex+UPDOWN_LOWERLIMIT ; the lower limit to zero,
+                sta ControlIndex+UpDown_DigitLo    ; UpDown value
+                sta ControlIndex+UpDown_DigitHi    ; to "00",
+                sta ControlIndex+UpDown_LowerLimit ; the lower limit to zero,
                 lda #$10                           ; and the
-                sta ControlIndex+UPDOWN_UPPERLIMIT ; upper limit to 10
+                sta ControlIndex+UpDown_UpperLimit ; upper limit to 10
                 jsr GUI_UpdateControl              ; confirm control changes
                 ; Edit_SL
                 lda #5                     ; Copy control struct of control #5
