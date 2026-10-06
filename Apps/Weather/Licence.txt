@@ -1,4 +1,4 @@
-Weather and Ultimate Control (GUI64 apps) (c) 2026 by SanstarR
+Weather (GUI64 app) (c) 2026 by SanstarR
 are licensed under CC BY-NC 4.0 - the same license as GUI64 itself.
 To view a copy of this license, visit
 https://creativecommons.org/licenses/by-nc/4.0/
@@ -13,7 +13,7 @@ Location by IP: ip-api.com. The free services of Open-Meteo and
 ip-api.com are meant for non-commercial use only.
 
 ---
-
+German:
 Weather und Ultimate Control (GUI64-Apps) (c) 2026 SanstarR,
 Lizenz CC BY-NC 4.0 - dieselbe wie GUI64 selbst: Weitergeben und
 Ändern erlaubt, mit Nennung des Urhebers (SanstarR) und dieses
