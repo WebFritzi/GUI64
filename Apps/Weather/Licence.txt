@@ -14,7 +14,7 @@ ip-api.com are meant for non-commercial use only.
 
 ---
 German:
-Weather und Ultimate Control (GUI64-Apps) (c) 2026 SanstarR,
+Weather (GUI64-App) (c) 2026 SanstarR,
 Lizenz CC BY-NC 4.0 - dieselbe wie GUI64 selbst: Weitergeben und
 Ändern erlaubt, mit Nennung des Urhebers (SanstarR) und dieses
 Hinweises, aber nicht kommerziell. Die Quellenangabe „Open-Meteo.com“
