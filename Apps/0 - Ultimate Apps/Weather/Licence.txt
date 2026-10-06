@@ -1,5 +1,5 @@
 Weather (GUI64 app) (c) 2026 by SanstarR
-are licensed under CC BY-NC 4.0 - the same license as GUI64 itself.
+is licensed under CC BY-NC 4.0 - the same license as GUI64 itself.
 To view a copy of this license, visit
 https://creativecommons.org/licenses/by-nc/4.0/
 
