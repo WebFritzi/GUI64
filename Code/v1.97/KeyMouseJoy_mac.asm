@@ -365,9 +365,10 @@ oldvalue        sbc #$ff
                 lsr ;remove noise bit
                 beq nomove
 
-                cmp #acc ;Acceleration Speed
-                bcc *+3
+                cmp #acc+1 ;Acceleration Speed
+                bcc *+5
                 asl ;X2
+                sbc #acc
 
                 ldx #0
                 cmp #0
@@ -387,8 +388,9 @@ neg             ora #%10000000
                 ror ;remove noise bit
 
                 cmp #256-acc ;Acceleration Speed
-                bcs *+3
+                bcs *+5
                 asl ;X2
+                adc #acc
 
                 ldx #$ff
 
