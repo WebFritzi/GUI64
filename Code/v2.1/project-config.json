@@ -1,0 +1,10 @@
+{
+    "name": "GUI64",
+    "description": "GUI64 for Commodore 64",
+    "toolkit": "acme",
+    "sources": [
+        "GUI64.asm"
+    ],
+    "build": "release",
+    "definitions": []
+}
