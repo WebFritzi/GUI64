@@ -1,0 +1,1 @@
+The Weather app requires a network module to access the internet. Currently supported are the WiC64 and Ultimate devices (firmware version 3.15 or later required).
