@@ -17,19 +17,19 @@ Mouse in Port #1 (mouse wheel support with adapter Micromys)<br>
 Joystick in Port #2 (right click with Commodore key + fire)
 
 ## Apps
-Since GUI64 v2.1, it is possible for programmers to develop apps for GUI64. An app is a PRG binary named "[appname].gui". To build an app, programmers should include the file *gui64.inc.asm* in their code. This file, along with demo apps and an API reference document, can be found in the [Apps folder](https://github.com/WebFritzi/GUI64/tree/main/Apps). For more apps, check out [Guido Bonerz' GitHub page](https://github.com/guidobonerz/gui64_apps).
+Since GUI64 v2.1, it is possible for programmers to develop apps for GUI64. An app is a `PRG` binary named "<appname>.gui". To build an app, programmers should include the file `gui64.inc.asm` in their code. This file, along with demo apps and an API reference document, can be found in the [Apps](https://github.com/WebFritzi/GUI64/tree/main/Apps) folder. For more apps, check out [Guido Bonerz' GitHub page](https://github.com/guidobonerz/gui64_apps).
 
 ## Time
 The current time is displayed either if the host is an Ultimate (with Command Interface enabled) or if there is a working [WiC64](https://www.wic64.net/web/) attached to the user port. Otherwise, the clock is set to "00:00".
 
 ## Ultimate Users
-Ultimate users [1541 Ultimate II(+L), Ultimate 64(EI/II), and C64 Ultimate, each with the **Ultimate's Command Interface enabled**] can browse content on SD-card or USB devices attached to their Ultimates and mount images right in GUI64. Moreover, they benefit from automatic saving of their settings (colors, desktop pattern, icon positions, device numbers) in the Ultimate's Flash folder, along with an accurate time display.
+Ultimate users (_1541 Ultimate II(+L)_, _Ultimate 64(EI/II)_, and _C64 Ultimate_, each with the **Ultimate's Command Interface enabled**] can browse content on SD-card or USB devices attached to their Ultimates and mount images right in GUI64. Moreover, they benefit from automatic saving of their settings (colors, desktop pattern, icon positions, device numbers) in the Ultimate's `Flash` folder, along with an accurate time display.
 
 ## Binaries
-There are currently two options: the first is a cartridge (crt) image which is recommended. This allows you to enjoy GUI64 right after switching on your computer. The second option is a disk (d64) image. Mount it and load GUI64 with 'LOAD"*",8,1'.
+There are currently two options: the first is a cartridge (`crt`) image which is recommended. This allows you to enjoy GUI64 right after switching on your computer. The second option is a disk (`d64`) image. Mount it and load GUI64 with `LOAD"*",8,1`.
 
 ## Code
-GUI64 was developed in 6502 assembly code (ACME syntax) with the VS64 extension in Visual Studio Code.
+GUI64 was developed in 6502 assembly code (ACME syntax) with the [VS64](https://marketplace.visualstudio.com/items?itemName=rosc.vs64) extension in Visual Studio Code.
 
 ## Possible features in future versions
 * Copy files between SD2IEC directories and images; maybe even copy files between disks in the same drive via disk swap will be possible as well
@@ -37,7 +37,7 @@ GUI64 was developed in 6502 assembly code (ACME syntax) with the VS64 extension 
 * Selection of multiple files in file browser
 
 ## Thank You
-A huge THANK YOU to all the users on http://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
+A huge THANK YOU to all the users on https://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
 
 ## Update Log (since v1.97)
 ### Version 2.1
@@ -56,6 +56,6 @@ A huge THANK YOU to all the users on http://www.Forum64.de who have supported me
 ### Version 1.97
 * Improved joystick performance: joystick acceleration
 * Ultimate: clock has access
-* Ultimate: settings are saved in Flash folder
+* Ultimate: settings are saved in `Flash` folder
 * Draggable icons
 * Internally: joint 2 projects for Win and Mac version to one single project
