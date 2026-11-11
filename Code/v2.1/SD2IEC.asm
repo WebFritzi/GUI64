@@ -312,7 +312,7 @@ CreateImageFile jsr error_codeTo0
                 sta $fd
                 lda #>drive_data
                 sta $fe
-                lda #3
+                lda #4
                 jsr SelectControl
                 lda ControlHilIndex
                 asl
