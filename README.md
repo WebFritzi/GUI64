@@ -40,6 +40,10 @@ GUI64 was developed in 6502 assembly code (ACME syntax) with the [VS64](https://
 A huge THANK YOU to all the users on https://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
 
 ## Update Log (since v1.97)
+### Version 2.2
+* Shadow added to top window in MAC design
+* Extended API significantly
+* Several bug fixes
 ### Version 2.1
 * Significant memory savings through code optimization
 * Long clicks in scrollbars and updown controls
