@@ -33,7 +33,6 @@ GUI64 was developed in 6502 assembly code (ACME syntax) with the [VS64](https://
 
 ## Possible features in future versions
 * Copy files between SD2IEC directories and images; maybe even copy files between disks in the same drive via disk swap will be possible as well
-* Scrolling by dragging
 * Selection of multiple files in file browser
 
 ## Thank You
