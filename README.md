@@ -8,7 +8,7 @@ GUI64 is a graphical user interface (GUI) for the Commodore 64, ready to use imm
 * view files in text and hex mode
 * SD2IEC: all of the above + browse folders and create disk images and folders
 * Ultimate: browse Ultimate content and mount images
-* Load and execute one GUI64 app at a time
+* Load and execute GUI64 apps
 
 For detailed information on GUI64, check out the [C64-Wiki page](https://www.c64-wiki.com/wiki/GUI64) or my [YouTube playlist](https://www.youtube.com/watch?v=iCAIbygV_Ac&list=PL0MXvn2FofiZXY7OWdk8VMvzWTT8VbzW2) on the development process of GUI64.
 
