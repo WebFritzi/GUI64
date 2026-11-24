@@ -1,0 +1,9 @@
+{
+    "editor.gotoLocation.multipleDefinitions": "goto",
+    "editor.gotoLocation.multipleReferences": "goto",
+    "vs64.autoBuild": false,
+    "workbench.editor.enablePreview": false,
+    "editor.tabSize": 16,
+    "editor.detectIndentation": false,
+    "editor.tabFocusMode": false
+}

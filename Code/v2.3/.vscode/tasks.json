@@ -1,0 +1,48 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "GUI64: Build Magic Desk WIN",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/Build-MagicDesk.ps1",
+                "-Design", "WIN"
+            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "GUI64: Build Magic Desk MAC",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/Build-MagicDesk.ps1",
+                "-Design", "MAC"
+            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "GUI64: Build and run WIN",
+            "type": "process",
+            "command": "x64sc",
+            "args": ["-cartcrt", "${workspaceFolder}/build/GUI64.win.crt"],
+            "dependsOn": "GUI64: Build Magic Desk WIN",
+            "problemMatcher": [],
+            "runOptions": { "instanceLimit": 1, "instancePolicy": "terminateOldest" },
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "GUI64: Build and run MAC",
+            "type": "process",
+            "command": "x64sc",
+            "args": ["-cartcrt", "${workspaceFolder}/build/GUI64.mac.crt"],
+            "dependsOn": "GUI64: Build Magic Desk MAC",
+            "problemMatcher": [],
+            "runOptions": { "instanceLimit": 1, "instancePolicy": "terminateOldest" }
+        }
+    ]
+}
