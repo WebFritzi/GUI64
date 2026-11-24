@@ -1,8 +1,8 @@
 ![alt text](https://github.com/WebFritzi/GUI64/blob/main/GUI64ex.png)
 
-# GUI64 2.2
+# GUI64 2.3
 GUI64 is a graphical user interface (GUI) for the Commodore 64, ready to use immediately after startup. It comes in two designs: one is Windows-like, the other Mac-like. With GUI64 you can do the following:
-* run programs and games with a simple double click and see the loading progress
+* run programs and games with a simple double click and see the loading progress. A fastloader is installed.
 * manage files by cutting, copying, pasting, deleting, and renaming them
 * format and rename disks
 * view files in text and hex mode
@@ -18,6 +18,9 @@ Joystick in Port #2 (right click with Commodore key + fire)
 
 ## Apps
 Since GUI64 v2.1, it is possible for programmers to develop apps for GUI64. An app is a `PRG` binary named "<appname>.gui". To build an app, programmers should include the file `gui64.inc.asm` in their code. This file, along with demo apps and an API reference document, can be found in the [Apps](https://github.com/WebFritzi/GUI64/tree/main/Apps) folder. For more apps, check out [Guido Bonerz' GitHub page](https://github.com/guidobonerz/gui64_apps).
+
+## Fastloader
+The built-in fastloader is a variant of Krill's loader. It loads 150 blocks-sized files in under 15 seconds and is used for loading and running programs and games through GUI64, for loading apps, and copying files. Note that fast loading is suppressed if a non-Commodore device, such as an SD2IEC, is attached to the serial port or if the Ultimate's SoftIEC is active. In this case, the usual kernal routines are used for loading. This fallback mode is JiffyDOS-compatible.
 
 ## Time
 The current time is displayed either if the host is an Ultimate (with Command Interface enabled) or if there is a working [WiC64](https://www.wic64.net/web/) attached to the user port. Otherwise, the clock is set to "00:00".
@@ -39,6 +42,9 @@ GUI64 was developed in 6502 assembly code (ACME syntax) with the [VS64](https://
 A huge THANK YOU to all the users on https://www.Forum64.de who have supported me in bringing this project to life. I'm truly grateful for their help. I would also like to thank [Bart van Leeuwen](https://github.com/bvl1999) for his support concerning the Ultimate and [rh70](https://www.forum64.de/wcf/index.php?user/20464-rh70/) from Forum64 for providing the code that grabs the time from the WIC64.
 
 ## Update Log (since v1.97)
+### Version 2.3
+* Fastloader added (a variant of Krill's loader)
+* Bug fixes
 ### Version 2.2
 * Shadow added to top window in MAC design
 * Extended API significantly
