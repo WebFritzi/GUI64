@@ -1,0 +1,604 @@
+Krill's loader
+
+November 2022
+Krill@Plush.de
+
+
+What it is
+----------
+This is an easy-to-use arbitrarily interruptible flexible general-purpose
+file-based disk loader system with optional decompression and limited
+save-with-replace capability, aiming to provide maximum loading speed while
+retaining full standard Commodore DOS format compatibility and also having a
+reasonably small memory footprint.
+Being fully standard DOS format compatible, disks and disk images may be
+written by numerous available third-party copy, transfer, and disk image
+manipulation programs.
+The selection of byte-stream based compression algorithms includes many popular
+crunchers.
+Natively supported drives include all variants of the classic Commodore drive
+families of 1541, 1570/71, 1581, as well as CMD FD drives, and 1541U.
+Using the KERNAL fallback option, devices like SD2IEC (slow), IDE64 (fast), and
+netload are supported non-natively.
+Both PAL and NTSC video systems are supported.
+The drive's CPU may run custom code provided by the user.
+
+
+What it isn't
+-------------
+Simply put, anything that's not a read-only disk driver (with limited saving
+capabilities).
+Although any of the following features and functionality may be built on top of
+it, it is not:
+- a DOS: it cannot save to newly-created files, format disks, provide random
+  access below file level, or otherwise organise data on a disk
+- a framework of any kind: it's only active when you tell it to, it does not do
+  anything in the background by itself, and the machine is fully yours when the
+  loader is idle
+- a memory expansion server: files are not cached in REU, GeoRAM, RAMLink,
+  RAMDrive, or similar devices
+- loading in an interrupt handler or another mainline thread: this can easily
+  and flexibly be implemented by the user
+
+
+Features
+--------
+- maximum raw loading speed of 7.7 kB/s (~20x) on 1541, typical speed is around
+  7 kB/s (~18x)
+- resident size: $01f9 bytes for combined load+depack using ZX0 (fits in
+  $0200..$03f8), $01fb bytes with TSCrunch (fits in $0200..$03fa), $e0 bytes
+  load-raw only
+- IRQ/NMI/DMA/sprites/badlines are allowed without restrictions
+- 2bit+ATN protocol (72 cycles per byte), multiple drives on the bus are
+  allowed, but loading only from the primary drive
+- supported crunchers: Bitnax, Byteboozer2, Doynax-LZ, Exomizer, Levelcrush,
+  LZSA2, NuCrunch, Pucrunch, Subsizer, tinycrunch, TSCrunch, ZX0
+- depacking fully in-place using Bitnax, LZSA2, tinycrunch, TSCrunch or ZX0,
+  no clobbered bytes beyond unpacked data
+- loading files in arbitrary order via directory with 0-terminated filename
+  strings
+- loadnext functionality for sequential loading without specifying subsequent
+  filenames
+- load address override for raw and crunched files
+- PAL/NTSC support, NTSC is optional
+- returns status codes for error checking and multiple disk handling
+- optional loading and decompression to RAM at $d000..$dfff
+- optional saving to pre-existing save-slot files
+- optional memory decompression without loading
+- optional loading via shadow directory for unrestricted dir-art
+- custom drive code API facilitating co-processing on the drive's CPU
+- full on-the-fly block GCR read+decode+checksumming
+- native interleave at 100% CPU for loading uncompressed files is 3 revolutions
+  per track on tracks 18+, 4 on tracks 1-17, and 4 for all tracks for
+  compressed files
+- implements Shrydar stepping for minimised seek time to an adjacent track
+- free relocation of install routine, resident/transient portions and zeropage
+  variables
+
+
+Folder structure overview
+-------------------------
+- loader                    this
+    - build                 output files
+    - docs                  documentation
+    - include               include files
+    - src                   source code
+        - decompress        decrunch routines
+        - drives            drive-side code
+        - hal               hardware abstraction layer implementations
+    - samples               example projects
+        - benchmark         benchmark using Bitfire/Sparkle corpus
+        - cc65              using the loader from a C program
+        - drivecode         running custom code in the drive
+        - minexample        minimum example
+        - resources         graphics and other binaries
+        - save              overwriting data in save-slot files
+        - standalone        use loader from BASIC prompt
+        - test              test application
+        - turndisk          disk change handling
+    - tools                 utilities
+        - b2                Byteboozer2
+        - bitnax-07a8c67    Bitnax
+        - cc1541            use cc1541 for optimised disk images
+        - dali              ZX0
+        - doynamite1.1      Doynax-LZ
+        - exomizer-3.1      Exomizer
+        - lzsa              LZSA(2)
+        - nucrunch-1.0.1    NuCrunch
+        - pucrunch          Pucrunch
+        - subsizer-0.7pre1  Subsizer
+        - tinycrunch_v1.2   tinycrunch
+        - tscrunch          TSCrunch
+        - wcrush            LevelCrush
+- shared                    miscellaneous include files
+
+
+Building the binaries
+---------------------
+Prebuilt binaries (install-c64.prg, loader-c64.prg and loadersymbols-c64.inc)
+can be found in loader/build.
+
+To build them, prerequisites are ca65 (see https://www.cc65.org,
+https://cc65.github.io, or https://github.com/cc65/cc65), make, and perl.
+In loader or loader/src, run
+
+    $ make prg
+
+This will produce (and overwrite) install-c64.prg, loader-c64.prg, and
+loadersymbols-c64.inc in loader/build.
+
+To specify zeropage, install and resident addresses, run, e.g.,
+
+    $ make prg ZP=e8 INSTALL=1000 RESIDENT=ce00
+
+which will produce binaries using zeropage addresses $e8 and up, with the
+install routine located at $1000 and the resident portion at $ce00.
+
+The two .prg files are regular C-64 program files with 2 bytes load address and
+can be linked statically using .incbin or similar features of any 6502
+assembler/linker.
+The symbols file is a text file defining the call addresses and zeropage
+variables in canonical 6502 assembler syntax and is intended to be included from
+assembly source code.
+
+
+Configuration
+-------------
+The main configuration file is loader/include/config.inc. The individual
+settings of the options are evaluated at build time and directly control various
+aspects of the loader's functionality and its memory footprint.
+This include file can be overridden by setting the EXTCONFIGPATH environment
+variable to a folder containing a file named loaderconfig.inc.
+
+Note that NTSC support is optional, and disabled in the pre-built binaries. This
+is because it slightly reduces PAL performance. However, resident portion
+incarnations with and without NTSC support can be selected at run-time in order
+to achieve maximum performance for both PAL and NTSC.
+
+Refer to loader/samples for various example projects using different individual
+external configuration files.
+
+
+Basic operation
+---------------
+Before the loader can operate, its drive-side code portion(s) must be installed
+in the drive(s). This is done by
+
+    jsr install; subsequent loader calls will only work on the active drive as
+               ; denoted by FA = $ae
+    bcs error
+    ; loader installed successfully
+
+On error, the carry flag is set and an error code is returned in the accu. As
+the install routine calls various KERNAL routines, the KERNAL ROM must be
+enabled (e.g., $01 set to $36 or $37).
+Note that the KERNAL routines also perform SEI and CLI, so it's advisable to set
+up any custom interrupt handlers or enable sprites only after installing the
+loader.
+Also note that some variables in lowmem ($0200..$03ff) will be overwritten by
+some KERNAL routines the install routine is calling. Thus, if the resident
+portion resides in memory below $0400, make sure to copy it there only after
+installing the loader.
+Furthermore, in additon to FA = $ae, some more zeropage variables must have
+valid values. See the bottom of loader/include/loader.inc for details. This list
+may not be complete.
+The drive-side portion remains resident in the drive. After successful
+installation, the install routine is not needed any more and may be overwritten.
+The KERNAL ROM may be disabled and zeropage variables clobbered.
+
+With the installed loader, files can only be loaded from the active drive, which
+cannot be changed, and all other drives will remain inert:
+
+    ldx #<filename
+    ldy #>filename
+    jsr loadraw; load without decompression
+    bcs error; accu contains error code when carry is set after loading
+    ; unpacked file loaded successfully
+
+    ldx #<packed
+    ldy #>packed
+    jsr loadcompd; load with decompression
+    bcs error; accu contains error code when carry is set after loading
+    ; packed file loaded successfully
+
+    [...]
+
+    filename:
+    .petscii "unpacked"
+    .byte 0
+
+    packed:
+    .petscii "packed"
+    .byte 0
+
+Note that the filename strings are 0-terminated.
+
+While loading using filenames with wildcards ("?" and "*") is not possible,
+subsequent files following the previously-loaded file can be loaded via a
+zero-length filename:
+
+    ldx #<nextfile
+    ldy #>nextfile
+    jsr loadraw; or loadcompd
+    bcs error
+
+    [...]
+
+    nextfile:
+    .byte 0
+
+The first file to be loaded by the loader must be loaded via its actual
+filename. Any subsequent files may then be loaded using the loadnext feature.
+
+It is strongly recommended to always check the carry flag for errors and handle
+them.
+
+The loader code is completely inert when the loader is idle. Thus, the resident
+code portion can be buffered away, overwritten, and copied back without any
+problems. It is also possible to have different incarnations of the resident
+code portion, such as with and without decompression, or with different
+decompression routines.
+
+See loader/samples/minexample for a minimal loader usage example.
+
+Refer to loader/include/loader.inc for the definition of the error codes and
+various ca65-syntax convenience macros illustrating usage of the various loader
+calls.
+
+
+Setting the VIC bank
+--------------------
+The VIC bank may be set by writing to $dd00 at any time after installing the
+loader, including setting it from an interrupt handler while loading. However,
+the upper 6 bits must always be set to 0. This means that no masking of the
+value read from $dd00 must be performed, and setting the VIC bank is as simple
+as
+
+    lda #vicbank; 4 legal values: $00, $01, $02 and $03
+    sta $dd00
+
+The 4 values are not inverted, i.e., $03 is the lowmost VIC bank at
+$0000..$3fff, as usual.
+
+When $dd00 is buffered and later restored, the value written back must also be
+restricted to 0..3.
+
+    lda $dd00
+    and #$03
+    sta dd00buffer
+
+    [...]
+
+    lda dd00buffer
+    sta $dd00
+
+Refer to loader/include/loader.inc for a ca65-syntax convenience macro to set
+the VIC bank.
+
+
+Zeropage usage
+--------------
+The loader's zeropage variables may be overwritten while it's idle. While
+loading, the addresses from loader_zp_first up to and including loader_zp_last
+as denoted in loadersymbols-c64.inc must not be written to.
+
+
+Handling disk changes
+---------------------
+Waiting for a specific disk to be inserted is done by enabling the
+FILE_EXISTS_API, then determining whether a specific disk is inserted by
+checking in a loop whether a file that only exists on that disk is found.
+The loop would look like this:
+
+    retry:
+    ldx #<filename
+    ldy #>filename
+    jsr fileexists
+    bcs retry; branch on file not found or error
+    ; file exists
+
+Once the file is found, it (or another file expected on the inserted disk) can
+be loaded.
+
+Without the FILE_EXISTS_API, an alternative way to handle disk changes is to try
+to load a file that only exists on that disk in a loop until the file (or its
+first byte) is loaded successfully.
+Thus, it is sufficient to perform
+
+    retry:
+    ldx #<filename
+    ldy #>filename
+    jsr loadraw; or loadcompd
+    bcs retry; branch on error
+    ; file loaded successfully
+
+The detection whether the file exists on the currently inserted disk can be sped
+up by having the file be merely one block big, or by resetting loadaddrhi to 0
+before loading and then polling it for change from an interrupt handler.
+
+Refer to loader/samples/turndisk for an example.
+
+
+Compressing files
+-----------------
+Generally, files need to be compressed (and decompressed) in forward (memory
+address ascending) direction, and the compressed file's load address should be
+set so that the end of the compressed data aligns with the end of its
+uncompressed counterpart, such that in-place decompression can be performed.
+
+Refer to the Makefile in loader/ for the "tools" target to build all the
+crunchers:
+
+    $ make tools
+
+Also refer to loader/samples/benchmark/Makefile or loader/samples/test/Makefile
+for the corresponding command line arguments for each of the supported crunchers.
+
+
+Synchronisation
+---------------
+For linearly loading and executing productions like demos, the general practice
+is to tie events such as loading files (and subsequently executing them) to
+specific music frame counts.
+A music frame usually coincides with a video frame, as the player is called once
+a frame, such that a frame count may be updated with calling the player.
+As loading generally does not take a well-determined period of time to finish
+(there is quite some deviation between different disks, same-model drives, and
+also loads from the same disk using the same drive), it is a good practice to
+sync to a minimum value of the frame count rather than an exact one:
+
+    wait:
+    lda framecountlo
+    cmp nextloadlo
+    lda framecounthi
+    sbc nextloadhi
+    bcc wait; branch if framecount < nextload
+    ; load next file
+
+This way, given enough headroom between loads, after a delayed loading-finished
+event, the next file would be loaded immediately, with the chain of events
+eventually catching up with the desired synchronisation.
+
+
+Dir-art
+-------
+Changing the amount of file blocks in the directory is strongly discouraged, as
+this would disturb speculative loading and either slow down loading or cause
+data to be loaded beyond the file's dedicated memory areas.
+
+However, there are a few ways to have an artful directory without interfering
+with the loading scheme:
+
+Program files are recognised by the loader regardless of their apparent type, so
+anything else than PRG is allowed, including deleted PRG files.
+
+For non-files, set their starting track to 0, such that they would not
+needlessly occupy space in the drive-side directory buffer, and also for the
+loadnext feature to work correctly.
+
+In order to only have only the first few characters of filenames be significant
+for identification, set the FILENAME_MAXLENGTH option in the configuration file
+to the amount of desired chars, e.g. 1, such that chars in the directory-listed
+filenames beyond the first are ignored, and loading is effectively by names
+like "1*", "A*", etc.
+
+For full freedom with the directory, including manipulating the amount of file
+blocks listed, set DIRTRACK in the configuration file to anything else than 18
+(recommended is 17 or 19 to minimise seek times to and from the shadow directory
+track), such that a shadow directory is used on that track by the loader. This
+shadow directory would list the files normally, but be hidden and separate from
+the normal directory listing, which can then be manipulated freely.
+
+Consider using cc1541 in loader/tools/cc1541 for creating disk images with a
+shadow directory.
+
+
+Optimising for speed
+--------------------
+To get closer to the maximum speed, a few rules can be followed. These include
+but are not limited to:
+
+The fewer and the bigger files are required to load a set of data, the faster
+the data is loaded. Thus, it can be beneficial to pad gaps between loaded data,
+or to re-arrange data, and merge files, minimising the number of files loaded.
+
+For better decrunch performance while loading, it may also be beneficial to
+have the most compressible data at the beginning and progressively less
+compressible data towards the end of a file.
+
+Generally, it's advisable to store sequentially-loaded files on ascending
+tracks rather than alternatingly around the directory track 18.
+
+Loading uncompressed files, the loader's native interleave is 4 revolutions for
+tracks 1-17, and 3 revolutions for tracks 18+. Thus, the highest raw throughput
+is obtained on tracks 18-24, then 25-30, then 31+, and finally 1-17.
+
+Loading compressed files, the loader's native interleave is 4 revolutions
+across the entire disk. Thus, the highest throughput is obtained on tracks 1-17
+then progressively decreasing with higher track numbers.
+
+The loader's speculative loading detects interleaves. However, the expected
+block allocation does not follow the same rules as saving with the drive's
+native DOS.
+
+This means that when adding the interleave on the current sector number in order
+to obtain the next one, and there is a wrap (next sector >= number of sectors on
+this track), then the new sector after wrap is a simple modulo on the number of
+sectors the track can hold. I.e.,
+
+    sector = (sector + interleave) % number_of_sectors[track];
+
+The DOS, instead, performs
+
+    sector += interleave;
+    if (sector >= number_of_sectors[track]) {
+        sector -= number_of_sectors[track];
+        if (sector > 0) {
+            --sector;
+        }
+    }
+
+While loading to the RAM under the I/O registers at $d000-$dfff is optionally
+possible, it may slow down loading and increases the size of the resident
+loader portion. Avoiding this option and working around loading to $d000-$dfff
+by copying after loading or decompressing to that range only after loading may
+speed up general loader operation.
+
+Consider using cc1541 in loader/tools/cc1541 for creating disk images with
+optimised layouts.
+
+
+Loading in the background
+-------------------------
+The loader normally loads in the mainline thread. If it shall load within a
+periodically-executed interrupt handler, i.e., in another mainline thread, the
+context must be switched accordingly. That is, stack pointer, registers and
+condition flags must be buffered when switching from the current thread, and the
+context of the thread being switched to must be restored. This can be
+implemented on top of the loader and is orthogonal to its functionality.
+
+
+Saving files
+------------
+To build the loader with file-save functionality, run, e.g.,
+
+    $ make save ZP=e8 INSTALL=1000 RESIDENT=cd00 TRANSIENT=2000
+
+in loader or loader/src.
+
+Additionally to install-c64.prg, loader-c64.prg, and loadersymbols-c64.inc, this
+will produce save-c64.prg in loader/build, assembled to the TRANSIENT memory
+region.
+
+Files can be saved like so:
+
+    ldx #<saveparams
+    ldy #>saveparams
+    jsr save
+    bcs error
+    ; file was saved successfully
+
+    [...]
+
+    saveparams:
+    .word filename
+    .word $2000; from
+    .word $0123; length in bytes
+    .word $2000; loadaddress
+    .word $8000; drive-code buffer, $0800 bytes to scratch
+
+    filename:
+    .petscii "hiscores"
+    .byte 0
+
+The file to save must exist on disk prior to saving. I.e., it is overwritten
+in its entirety, replacing the original file.
+
+Note that save-c64.prg need not be resident in computer memory, and can be
+loaded, used and then overwritten again.
+
+Refer to loader/samples/save for an example.
+
+
+Limitations
+-----------
+Internally, the loader's drive-side directory buffer stores 16-bit hash values
+of filenames. There is a certain chance of collision, such that two files with
+different filenames may have the same filename hash and thus appear as the same
+file to the loader, and it would "randomly" load either file without reporting
+an error. Using cc1541 in loader/tools/cc1541, hash collisions are detected and
+can then be worked around by renaming files or changing the loader's
+FILENAME_MAXLENGTH configuration setting, which must be reflected with cc1541's
+-M option.
+
+There must always be at least 2 file entries in the directory.
+
+The final directory block must begin with 00 ff. Some custom disk image creation
+tools produce an erroneous final directory block, such that its first bytes are
+00 00. This is an invalid block length, and the loader rejects blocks with
+invalid track/sector links or block sizes. In the case of an invalid directory
+block, the loader keeps retrying to read it, effectively locking up.
+
+As mentioned in the dir-art section, the number of file blocks listed in the
+directory must not be changed, unless having a shadow directory (with the actual
+number of file blocks).
+
+If the loader is given extremely little raster time for loading, or even starved
+for multiple video frames, it's adviseable to enable the DISABLE_WATCHDOG option
+in loader/include/loader.inc. This will disengage the watchdog interrupt in the
+drive-side code portion, which is otherwise triggering on protocol breaches and
+would reset the drive on unexpected errors, such as the computer crashing or
+resetting during loading, or cartridge freeze. The rationale is that the drive
+would become accessible normally without the need to power-cycle or manually
+reset it.
+
+If not using Bitnax, LZSA2, tinycrunch, TSCrunch or ZX0, compressed files will
+usually go a few bytes beyond their corresponding uncompressed data. This means
+that some bytes directly after the uncompressed files' range in memory are
+overwritten. This can be worked around by not using those areas while loading.
+
+However, when crunched files are larger than their uncompressed counterparts,
+data before the uncompressed memory region may be overwritten. To work around
+this, add some padding at the end of the uncompressed files.
+
+
+License
+-------
+TL;DR: Please give credit, thanks.
+
+When using this software or a derivative thereof in own works, please give
+appropriate credit, e.g., "Loader by Krill".
+This does not need to be on prominent display within the actual running
+production itself, but at least in an accompanying note, readme, info file,
+directory, or a similar means of attribution contained in the official release
+archive or disk images.
+Exclusively external credits on websites or online forums are no such instances.
+
+Copyright 2022 Gunnar Ruthenberg
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice in
+an appropriate form, e.g., "Loader by Krill" displayed anywhere in the actual
+production itself and/or accompanying documentation contained in the official
+release archive or disk images.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Third-party software (particularly in loader/tools and loader/samples/resources)
+and its derivatives (particularly in loader/src/decompress) are not affected and
+retain their original licenses.
+
+
+Thanks
+------
+For extensive beta-testing, i thank, in alphabetical order:
+
+Adder, Algorithm, ChristopherJam, Dr. Science, Jojeli, Mr Ammo, Nomistake,
+Perplex, q0w, root42, willymanilly.
+
+For some extra-extensive testing effort, i thank, again:
+
+q0w and Dr. Science.
+
+Special thanks to Bitbreaker for coming up with the partial overlap GCR decoding
+trick that has made the 124-cycle read loop possible, and to ChristopherJam aka
+Shrydar, again, for some valuable ideas and input, and the concentric circles
+bitmap.
